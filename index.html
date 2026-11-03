@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#F2F2F7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Агро">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="description" content="Агро-помощник: риск урожая, дневник полей, севооборот, пастбища и корма для хозяйств Казахстана">
+<title>Агро-помощник</title>
+<style>
+/* Дизайн в духе iOS: системный шрифт, большие заголовки, сгруппированные карточки, полупрозрачные панели */
+:root{
+ --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Helvetica Neue","Segoe UI",Roboto,system-ui,sans-serif;
+ --bg:#F2F2F7;--card:#FFFFFF;--ink:#000000;--mute:#6C6C70;--line:rgba(60,60,67,.18);--fill:rgba(118,118,128,.12);
+ --accent:#248A3D;--on:#FFFFFF;--tint:rgba(36,138,61,.12);
+ --g:#248A3D;--y:#C93400;--r:#D70015;--gF:#34C759;--yF:#FF9500;--rF:#FF3B30;
+ --s1:#248A3D;--pos:#2a78d6;--neg:#e34948;--wx:#2a78d6;--seg:#FFFFFF;--mat:rgba(249,249,249,.86);--tabOff:#6C6C70;--shadow:0 1px 2px rgba(0,0,0,.04);
+ --chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%236C6C70' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+ color-scheme:light;-webkit-text-size-adjust:100%}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+ --bg:#000000;--card:#1C1C1E;--ink:#FFFFFF;--mute:#AEAEB2;--line:rgba(84,84,88,.6);--fill:rgba(118,118,128,.24);
+ --accent:#30D158;--on:#000000;--tint:rgba(48,209,88,.16);--g:#30D158;--y:#FF9F0A;--r:#FF453A;--gF:#30D158;--yF:#FF9F0A;--rF:#FF453A;
+ --s1:#28b04a;--pos:#3987e5;--neg:#e66767;--wx:#3987e5;--seg:#636366;--mat:rgba(22,22,24,.84);--tabOff:#98989D;--shadow:none;
+ --chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%23AEAEB2' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+ color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#000000;--card:#1C1C1E;--ink:#FFFFFF;--mute:#AEAEB2;--line:rgba(84,84,88,.6);--fill:rgba(118,118,128,.24);
+ --accent:#30D158;--on:#000000;--tint:rgba(48,209,88,.16);--g:#30D158;--y:#FF9F0A;--r:#FF453A;--gF:#30D158;--yF:#FF9F0A;--rF:#FF453A;
+ --s1:#28b04a;--pos:#3987e5;--neg:#e66767;--wx:#3987e5;--seg:#636366;--mat:rgba(22,22,24,.84);--tabOff:#98989D;--shadow:none;
+ --chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%23AEAEB2' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+ color-scheme:dark}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{scroll-padding-top:calc(56px + env(safe-area-inset-top,0px))}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 17px/1.4 var(--font);letter-spacing:-.41px;-webkit-font-smoothing:antialiased}
+main{max-width:640px;margin:0 auto;padding:calc(44px + env(safe-area-inset-top,0px)) 16px calc(96px + env(safe-area-inset-bottom,0px))}
+
+/* Навигационная панель сверху: прозрачная у заголовка, матовая при прокрутке */
+.nav{position:fixed;top:0;left:0;right:0;z-index:20;padding-top:env(safe-area-inset-top,0px);transition:background .2s,box-shadow .2s}
+.nav.solid{background:var(--mat);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);box-shadow:0 .5px 0 var(--line)}
+.nav .in{max-width:640px;margin:0 auto;height:44px;display:flex;align-items:center;justify-content:center;position:relative;padding:0 8px}
+.nav .nt{font-weight:600;font-size:17px;opacity:0;transition:opacity .2s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60%}
+.nav.solid .nt{opacity:1}
+.back{position:absolute;left:4px;top:0;height:44px;display:flex;align-items:center;gap:2px;border:0;background:none;color:var(--accent);font:400 17px var(--font);letter-spacing:-.41px;cursor:pointer;padding:0 8px}
+.back svg{width:13px;height:21px}
+.lt{margin:4px 0 16px}
+h1{font-size:34px;line-height:41px;font-weight:700;letter-spacing:.37px;margin:0}
+#farmBar{margin:2px 0 0;font-size:15px;color:var(--mute)}
+h2{font-size:20px;line-height:25px;font-weight:600;letter-spacing:.38px;margin:0 0 10px}
+h3{font-size:17px;font-weight:600;margin:0 0 6px}
+
+/* Карточки */
+.panel{background:var(--card);border-radius:14px;padding:16px;margin-bottom:16px;box-shadow:var(--shadow)}
+.result{position:relative}
+.cls{font-size:24px;line-height:30px;font-weight:700;letter-spacing:.35px;margin:0;display:flex;align-items:center;gap:10px}
+.cls::before{content:"";flex:none;width:12px;height:12px;border-radius:50%;background:currentColor}
+.cls .num{margin-left:auto;color:var(--ink);font-size:34px;line-height:41px;font-weight:700;font-variant-numeric:tabular-nums}
+.cls.g{color:var(--g)}.cls.y{color:var(--y)}.cls.r{color:var(--r)}
+.bar{position:relative;height:8px;border-radius:4px;margin:20px 0 8px;background:linear-gradient(90deg,var(--gF) 0 25%,var(--yF) 25% 50%,var(--rF) 50% 100%)}
+.mark{position:absolute;top:-8px;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 0 0 .5px rgba(0,0,0,.04),0 3px 8px rgba(0,0,0,.18),0 3px 1px rgba(0,0,0,.06);transform:translateX(-12px);transition:left .35s cubic-bezier(.2,.8,.2,1)}
+.scale{display:flex;justify-content:space-between;color:var(--mute);font-size:12px}
+.sc{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+.sc div{background:var(--fill);border-radius:12px;padding:10px 6px;text-align:center}
+.sc b{display:block;font-size:22px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:.35px}
+.sc span{font-size:12px;color:var(--mute)}
+ul,ol{padding-left:20px;margin:6px 0}li{margin:6px 0}
+.note{font-size:13px;line-height:18px;color:var(--mute);letter-spacing:-.08px}
+p{margin:8px 0}
+a{color:var(--accent)}
+
+/* Поля ввода */
+label{display:block;font-size:15px;font-weight:400;color:var(--mute);margin:14px 0 6px;letter-spacing:-.24px}
+label:first-child{margin-top:0}
+select,input,textarea{width:100%;font:400 17px var(--font);letter-spacing:-.41px;padding:11px 12px;border:0;border-radius:10px;background:var(--fill);color:var(--ink);min-height:44px;-webkit-appearance:none;appearance:none}
+select{background-image:var(--chev);background-repeat:no-repeat;background-position:right 12px center;padding-right:34px}
+input[type=date]{min-height:44px;display:block}
+input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+input[type=number]{-moz-appearance:textfield}
+input::placeholder,textarea::placeholder{color:var(--mute);opacity:.75}
+textarea{min-height:88px;resize:vertical;line-height:1.35}
+:focus{outline:none}
+:focus-visible{outline:3px solid color-mix(in srgb,var(--accent) 55%,transparent);outline-offset:2px}
+input:focus,select:focus,textarea:focus{box-shadow:0 0 0 2px var(--accent)}
+
+/* Кнопки */
+.btn{font:600 17px var(--font);letter-spacing:-.41px;padding:13px 16px;border-radius:12px;border:0;background:var(--tint);color:var(--accent);cursor:pointer;min-height:50px;transition:transform .1s,opacity .15s}
+.btn.main{background:var(--accent);color:var(--on)}
+.btn:active,.sm:active,.cell:active{opacity:.6}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}.row .btn{flex:1 1 40%}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.two>div{display:flex;flex-direction:column;justify-content:flex-end}
+h2+.two,label+.two{margin-top:0}
+#inputs label:first-child{margin-top:14px}
+td:first-child{white-space:nowrap}
+.sm{font:600 15px var(--font);letter-spacing:-.24px;padding:6px 14px;border-radius:999px;border:0;background:var(--tint);color:var(--accent);cursor:pointer;min-height:34px;margin:8px 6px 0 0}
+.sm[aria-pressed="true"]{background:var(--accent);color:var(--on)}
+.edt,.del{float:right;border:0;background:none;font:400 15px var(--font);cursor:pointer;min-height:44px;padding:0 4px 0 12px}
+.edt{color:var(--accent)}.del{color:var(--r)}
+
+/* Сегментный переключатель */
+.seg{display:flex;background:var(--fill);border-radius:9px;padding:2px;margin-bottom:16px}
+.seg button{flex:1;border:0;background:none;color:var(--ink);font:500 15px var(--font);letter-spacing:-.24px;padding:6px 8px;border-radius:7px;cursor:pointer;min-height:36px;transition:background .2s}
+.seg button[aria-pressed="true"]{background:var(--seg);font-weight:600;box-shadow:0 3px 8px rgba(0,0,0,.12),0 3px 1px rgba(0,0,0,.04)}
+
+/* Списки */
+.ent{border-top:.5px solid var(--line);padding:12px 0}
+.ent:first-child,h2+.ent,.grp+.ent{border-top:0}
+.ent b{display:block;font-weight:600}
+.ent .meta,.meta{font-size:15px;color:var(--mute);letter-spacing:-.24px}
+.grp{font-size:13px;font-weight:400;color:var(--mute);text-transform:uppercase;letter-spacing:-.08px;margin:18px 0 4px}
+details{border-top:.5px solid var(--line)}
+details>summary{list-style:none;cursor:pointer;padding:12px 24px 12px 0;position:relative;font-weight:600}
+details>summary::-webkit-details-marker{display:none}
+details>summary::after{content:"";position:absolute;right:4px;top:50%;width:8px;height:8px;border-right:2px solid var(--mute);border-bottom:2px solid var(--mute);transform:translateY(-70%) rotate(45deg);transition:transform .2s}
+details[open]>summary::after{transform:translateY(-30%) rotate(-135deg)}
+details.ent{padding:0}
+table{width:100%;border-collapse:collapse;font-size:15px;letter-spacing:-.24px;font-variant-numeric:tabular-nums}
+td,th{text-align:left;padding:9px 8px 9px 0;border-bottom:.5px solid var(--line);vertical-align:top}
+th{font-size:13px;font-weight:600;color:var(--mute);letter-spacing:-.08px}
+tr:last-child td{border-bottom:0}
+.scr{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.scr table{min-width:100%}
+.warn{background:color-mix(in srgb,var(--yF) 16%,var(--card));border-radius:12px;padding:12px 14px;margin:10px 0;font-size:15px;line-height:20px;letter-spacing:-.24px}
+#kkNote{margin-top:0}
+.ok{color:var(--g);font-weight:600}.bad{color:var(--r);font-weight:600}
+.hidden{display:none!important}
+footer{margin:24px 4px 0;font-size:12px;line-height:16px;color:var(--mute)}
+
+/* Экран «Ещё»: сгруппированный список как в Настройках */
+.sh{font-size:13px;color:var(--mute);text-transform:uppercase;letter-spacing:-.08px;margin:22px 16px 7px}
+.sh:first-child{margin-top:0}
+.list{background:var(--card);border-radius:12px;overflow:hidden;box-shadow:var(--shadow)}
+.cell{display:flex;align-items:center;gap:14px;width:100%;border:0;background:none;color:var(--ink);font:400 17px var(--font);letter-spacing:-.41px;text-align:left;padding:0 16px;min-height:56px;cursor:pointer;position:relative}
+.cell+.cell::before{content:"";position:absolute;top:0;left:60px;right:0;border-top:.5px solid var(--line)}
+.ic{flex:none;width:30px;height:30px;border-radius:7px;background:var(--c);display:grid;place-items:center;color:#fff}
+.ic svg{width:19px;height:19px}
+.ct{flex:1;min-width:0;padding:9px 0}
+.ct small{display:block;font-size:13px;color:var(--mute);letter-spacing:-.08px;line-height:17px}
+.val{color:var(--mute);font-size:17px;white-space:nowrap;max-width:40%;overflow:hidden;text-overflow:ellipsis}
+.badge{background:var(--rF);color:#fff;font-size:15px;font-weight:500;min-width:24px;height:24px;border-radius:12px;padding:0 7px;display:grid;place-items:center}
+.chev{flex:none;width:8px;height:8px;border-right:2px solid color-mix(in srgb,var(--mute) 60%,transparent);border-bottom:2px solid color-mix(in srgb,var(--mute) 60%,transparent);transform:rotate(-45deg);margin-right:2px}
+.lock{font-size:13px;color:var(--mute)}
+.list.pad{padding:12px 16px}.list.pad .seg{margin:0}
+
+/* Панель вкладок снизу */
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--mat);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);box-shadow:0 -.5px 0 var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+.tabbar .in{max-width:640px;margin:0 auto;display:flex}
+.tabbar button{flex:1;border:0;background:none;color:var(--tabOff);font:500 10px var(--font);letter-spacing:.1px;display:flex;flex-direction:column;align-items:center;gap:2px;padding:7px 2px 6px;min-height:50px;cursor:pointer}
+.tabbar svg{width:26px;height:26px}
+.tabbar button[aria-current="page"]{color:var(--accent)}
+
+.toast{position:fixed;left:50%;bottom:calc(66px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--mat);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);color:var(--ink);border-radius:14px;padding:12px 16px;display:flex;gap:14px;align-items:center;max-width:calc(100% - 32px);z-index:30;box-shadow:0 8px 30px rgba(0,0,0,.18),0 0 0 .5px var(--line);font-size:15px;letter-spacing:-.24px;animation:tin .25s cubic-bezier(.2,.8,.2,1)}
+@keyframes tin{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translate(-50%,0)}}
+.toast button{font:600 15px var(--font);background:none;border:0;color:var(--accent);cursor:pointer;min-height:36px;white-space:nowrap}
+.page{animation:pin .25s ease-out}
+@keyframes pin{from{opacity:.4;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.page,.toast{animation:none}.mark{transition:none}}
+
+/* ===== 0.5: сводка, погода, графики, лист, онбординг ===== */
+.navR{position:absolute;right:4px;top:0;height:44px;width:44px;border:0;background:none;color:var(--accent);cursor:pointer;display:grid;place-items:center}
+.navR svg{width:24px;height:24px}
+.cap{font-size:13px;font-weight:600;color:var(--mute);text-transform:uppercase;letter-spacing:-.08px;margin:0 0 2px}
+.hd{display:flex;align-items:baseline;justify-content:space-between;gap:10px}.hd h2{margin-bottom:8px}
+.lnk{border:0;background:none;color:var(--accent);font:400 17px var(--font);letter-spacing:-.41px;cursor:pointer;padding:4px 0;min-height:32px;white-space:nowrap}
+.note .lnk{font-size:13px;letter-spacing:-.08px;padding:0 4px;min-height:0}
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.kpi{background:var(--card);border-radius:14px;padding:12px 14px;box-shadow:var(--shadow);min-width:0}
+.kl{font-size:13px;font-weight:600;color:var(--mute)}
+.kv{font-size:26px;line-height:34px;font-weight:700;letter-spacing:.35px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kv .u{font-size:15px;font-weight:600;color:var(--mute);letter-spacing:-.24px}
+.kv.t{font-size:20px;line-height:25px;white-space:normal;overflow:visible;margin:4px 0 5px}
+.kv input{width:6.5ch;display:inline-block;font-size:22px;font-weight:700;padding:2px 8px;min-height:36px}
+.ks{font-size:13px;color:var(--mute);letter-spacing:-.08px}
+.al{border-radius:12px;padding:10px 12px;margin:8px 0;font-size:15px;line-height:20px;letter-spacing:-.24px;background:color-mix(in srgb,var(--yF) 14%,var(--card))}
+.al.r{background:color-mix(in srgb,var(--rF) 12%,var(--card))}
+.al b{display:block}.al .meta{font-size:13px}
+.wxh{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:6px}
+.wxt{font-size:60px;line-height:64px;font-weight:200;letter-spacing:-1.5px}
+.wd{display:grid;grid-template-columns:70px 26px 46px 36px 1fr 36px;align-items:center;gap:6px;padding:7px 0;border-top:.5px solid var(--line);font-size:17px;border-radius:6px}
+.wd:first-child{border-top:0}
+.wdn{font-weight:500}.wdi{display:grid;place-items:center}.wdp{font-size:13px;color:var(--mute);text-align:center;white-space:nowrap}
+.wdl{color:var(--mute);text-align:right;font-variant-numeric:tabular-nums}.wdh{font-variant-numeric:tabular-nums}
+.wdt{position:relative;height:6px;border-radius:3px;background:var(--fill)}
+.wdb{position:absolute;top:0;height:6px;border-radius:3px;background:var(--wx)}
+.sw{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-top:.5px solid var(--line)}.grp+.sw{border-top:0}
+.swd{color:var(--mute)}
+.hb{margin-top:2px}
+.hbr{display:grid;grid-template-columns:1fr auto;column-gap:10px;row-gap:5px;align-items:center;padding:7px 4px;margin:0 -4px;font-size:15px;letter-spacing:-.24px;border-radius:8px;cursor:default}
+.hbr .hbt{grid-column:1/-1;grid-row:2}
+.hbr:hover,.hbr:focus-visible{background:var(--fill)}
+.hbn{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hbt{position:relative;height:12px}
+.hbf{position:absolute;left:0;top:0;height:12px;background:var(--s1);border-radius:0 4px 4px 0}
+.hbt.dv.c::before{content:"";position:absolute;left:50%;top:-5px;bottom:-5px;border-left:1px solid var(--line)}
+.hbf.ps{background:var(--pos)}.hbf.ng{background:var(--neg)}
+.hbv{font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.cols{display:flex;align-items:flex-end;gap:10px;height:150px;padding-top:22px;border-bottom:1px solid var(--line);margin:6px 0 30px}
+.col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;position:relative;border-radius:6px}
+.col:hover .cb,.col:focus-visible .cb{opacity:.75}
+.cb{width:min(24px,70%);background:var(--s1);border-radius:4px 4px 0 0;display:block}
+.cv{font-size:13px;font-weight:600;margin-bottom:4px;white-space:nowrap}
+.cn{position:absolute;bottom:-24px;font-size:13px;color:var(--mute)}
+.tip{position:fixed;z-index:70;background:var(--ink);color:var(--bg);font-size:13px;line-height:17px;padding:7px 10px;border-radius:8px;max-width:260px;pointer-events:none;box-shadow:0 4px 14px rgba(0,0,0,.2)}
+.tk{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-top:.5px solid var(--line)}.hd+.tk{border-top:0}
+.ck{flex:none;width:26px;height:26px;border-radius:50%;border:2px solid color-mix(in srgb,var(--mute) 70%,transparent);background:none;cursor:pointer;position:relative;transition:background .15s}
+.ck::before{content:"";position:absolute;inset:-9px}
+.ck.on{background:var(--accent);border-color:var(--accent)}
+.ck.on::after{content:"";position:absolute;left:7px;top:3px;width:6px;height:11px;border:solid var(--on);border-width:0 2px 2px 0;transform:rotate(45deg)}
+.rk{display:block;width:100%;border:0;background:none;text-align:left;color:inherit;font:inherit;cursor:pointer;padding:0}
+.rk .cls{margin-bottom:4px}
+.er{display:flex;gap:12px;padding:12px 4px;margin:0 -4px;border-top:.5px solid var(--line);border-radius:8px}.grp+.er,.hd+.er{border-top:0}
+.oi{flex:none;width:34px;height:34px;border-radius:50%;background:var(--c);color:#fff;display:grid;place-items:center}
+.oi svg{width:19px;height:19px}
+.eb{flex:1;min-width:0}
+.et{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.ed{color:var(--mute);font-size:15px;white-space:nowrap}
+.en{font-size:15px;margin-top:2px;letter-spacing:-.24px}
+.acts{margin-top:2px}
+.acts .edt,.acts .del{float:none;min-height:34px;padding:0 18px 0 0;font-size:15px}
+.empty{text-align:center;padding:20px 8px}
+.empty>svg{width:44px;height:44px;display:block;margin:0 auto 10px;color:var(--mute)}
+.empty .oi{width:56px;height:56px;margin:0 auto 12px}.empty .oi svg{width:28px;height:28px}
+.empty b{display:block;font-size:20px;line-height:25px;margin-bottom:4px}
+.empty .btn{margin-top:14px;min-width:220px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font:500 15px var(--font);letter-spacing:-.24px;padding:8px 14px;border-radius:999px;border:0;background:var(--fill);color:var(--ink);cursor:pointer;min-height:36px}
+.chip[aria-pressed="true"]{background:var(--accent);color:var(--on)}
+.lbl{font-size:15px;color:var(--mute);margin:14px 0 6px;letter-spacing:-.24px}
+.chipc{display:inline-flex;align-items:center;gap:6px;background:var(--fill);border-radius:999px;padding:3px 10px;font-size:15px;margin:2px 6px 2px 0;letter-spacing:-.24px}
+.chipc i{width:8px;height:8px;border-radius:50%}
+.tli{display:grid;grid-template-columns:46px 1fr auto;gap:10px;align-items:center;padding:8px 0;border-top:.5px solid var(--line)}.tli:first-child{border-top:0}
+.tly{font-weight:600;font-variant-numeric:tabular-nums}.tlv{color:var(--mute);font-size:15px;white-space:nowrap}
+.sheetW{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.4);display:flex;align-items:flex-end;justify-content:center;animation:fin .2s}
+.sheetW.out{opacity:0;transition:opacity .2s}
+.sheet{background:var(--bg);width:100%;max-width:640px;max-height:calc(100% - 20px - env(safe-area-inset-top,0px));border-radius:14px 14px 0 0;overflow:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:0 16px calc(24px + env(safe-area-inset-bottom,0px));animation:sup .32s cubic-bezier(.2,.8,.2,1);box-shadow:0 -8px 30px rgba(0,0,0,.2)}
+.shh{position:sticky;top:0;z-index:2;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;min-height:58px;background:var(--bg);margin:0 -16px 4px;padding:8px 16px 0}
+.shh::before{content:"";position:absolute;top:6px;left:50%;width:36px;height:5px;margin-left:-18px;border-radius:3px;background:var(--line)}
+.shh b{font-size:17px;font-weight:600;text-align:center}
+.shh button{justify-self:start;border:0;background:none;color:var(--accent);font:400 17px var(--font);letter-spacing:-.41px;cursor:pointer;min-height:44px;padding:0}
+.sheet .panel{margin-bottom:0}
+#dCancel{display:none!important}
+@keyframes sup{from{transform:translateY(100%)}to{transform:none}}
+@keyframes fin{from{opacity:0}to{opacity:1}}
+body.noscroll{overflow:hidden}
+.onb{position:fixed;inset:0;z-index:60;background:var(--bg);overflow:auto;padding:calc(36px + env(safe-area-inset-top,0px)) 24px calc(20px + env(safe-area-inset-bottom,0px))}
+.onb .in{max-width:460px;margin:0 auto;min-height:100%;display:flex;flex-direction:column}
+.onb .in>div{display:flex;flex-direction:column;flex:1}
+.onb h1{text-align:center;margin:16px 0 28px}
+.appi{width:88px;height:88px;margin:8px auto 0;border-radius:20px;box-shadow:0 8px 24px rgba(0,0,0,.16);display:block}
+.feat{display:flex;gap:16px;align-items:flex-start;margin:0 0 22px}
+.feat .fi{flex:none;width:42px;height:42px;color:var(--accent);display:grid;place-items:center}
+.feat .fi svg{width:34px;height:34px}
+.feat b{display:block;font-size:17px;font-weight:600}
+.feat span{font-size:15px;color:var(--mute);letter-spacing:-.24px;line-height:20px}
+.onb .sp{flex:1;min-height:12px}
+.onb .btn{width:100%;margin-top:10px}
+.onb .lnk{display:block;margin:10px auto 0;min-height:44px}
+@media (prefers-reduced-motion:reduce){.sheet,.sheetW{animation:none}}
+#printArea{display:none}
+@media print{body{background:#fff;color:#000}main,.toast,.nav,.tabbar,.sheetW,.onb,.tip{display:none!important}#printArea{display:block;font:12px/1.4 var(--font);padding:0 8px}#printArea table{font-size:11px}#printArea td,#printArea th{border-bottom:1px solid #999}}
+</style>
+</head>
+<body>
+<header class="nav" id="nav"><div class="in"><button class="back hidden" id="back"><svg viewBox="0 0 13 21" aria-hidden="true"><path d="M11 2L3 10.5 11 19" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span id="backT">Ещё</span></button><span class="nt" id="navT" aria-hidden="true"></span><button class="navR hidden" id="navAdd" aria-label="Новая запись"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></button></div></header>
+<main>
+<div class="lt"><p class="cap hidden" id="pageCap"></p><h1 id="pageT">Сводка</h1><p id="farmBar" class="hidden"></p></div>
+<p id="kkNote" class="warn hidden">Қазақша нұсқа алдын ала: мәзір мен негізгі жазулар ғана аударылған, қалған мәтін орысша. Аударманы ана тілі қазақ тілі болатын агроном тексеруі керек.</p>
+<div id="menu" class="hidden">
+<p class="sh" data-i="shSec">Разделы</p>
+<div class="list">
+ <button class="cell" data-go="R"><span class="ic" style="--c:#FF9500"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 16.5a8.5 8.5 0 1 1 17 0"/><path d="M12 16.5l4.2-5.2"/><circle cx="12" cy="16.5" r="1.5" fill="currentColor"/></svg></span><span class="ct"><span data-i="mR">Риск урожая</span><small data-i="sR">17 культур, погода сезона, сроки сева</small></span><span class="val" id="mvRisk"></span><span class="chev"></span></button>
+ <button class="cell" data-go="C"><span class="ic" style="--c:#FF3B30"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 5-3 8.5-7 10-4-1.5-7-5-7-10V6z"/><path d="M9 12l2 2 4-4.5"/></svg></span><span class="ct"><span data-i="mC">Проверка хозяйства</span><small data-i="sC">Ошибки и риски по записям дневника</small></span><span class="lock hidden" data-lk="C">Хозяйство</span><span class="badge hidden" id="mbC"></span><span class="chev"></span></button>
+ <button class="cell" data-go="W"><span class="ic" style="--c:#34C759"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19c0-8 5-13.5 14-14-.5 9-6 14-14 14z"/><path d="M5 19l7.5-7.5"/></svg></span><span class="ct"><span data-i="mW">Защита растений</span><small data-i="sW">Сорняки, саранча, справочник</small></span><span class="chev"></span></button>
+ <button class="cell" data-go="P"><span class="ic" style="--c:#30B0C7"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20c1.5-3.5 2.5-7.5 2.5-12M10.5 20c.8-3 1.5-6 1.5-10M16.5 20c0-4 1.5-7 3.5-9"/><path d="M3 20h18"/></svg></span><span class="ct"><span data-i="mP">Пастбище</span><small data-i="sP">Нагрузка и норматив приказа № 394</small></span><span class="lock hidden" data-lk="P">Хозяйство</span><span class="chev"></span></button>
+ <button class="cell" data-go="F"><span class="ic" style="--c:#A2845E"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="9" width="16" height="11" rx="1.5"/><path d="M4 13.5h16M8 9V5.5h8V9"/></svg></span><span class="ct"><span data-i="mF">Корма на зиму</span><small data-i="sF">Баланс по сухому веществу</small></span><span class="lock hidden" data-lk="F">Хозяйство</span><span class="chev"></span></button>
+</div>
+<p class="sh" data-i="shFarm">Хозяйство и данные</p>
+<div class="list">
+ <button class="cell" data-go="X" data-sec="mFarm"><span class="ic" style="--c:#5856D6"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-6.5 8 6.5v9H4z"/><path d="M10 20v-5.5h4V20"/></svg></span><span class="ct"><span data-i="mFarm">Хозяйства</span></span><span class="val" id="mvFarm"></span><span class="chev"></span></button>
+ <button class="cell" data-go="demo"><span class="ic" style="--c:#00C7BE"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 5.5v13l10.5-6.5z"/></svg></span><span class="ct">Демо-хозяйство<small>Пример с данными за 4 сезона для показа</small></span><span class="val" id="mvDemo"></span><span class="chev"></span></button>
+ <button class="cell" data-go="X" data-sec="mPilot"><span class="ic" style="--c:#AF52DE"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5h14a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H10l-4.5 3.5V16H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/></svg></span><span class="ct"><span data-i="mPilot">Отзыв о пилоте</span></span><span class="chev"></span></button>
+ <button class="cell" data-go="X" data-sec="mData"><span class="ic" style="--c:#007AFF"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v10M8 10.5l4 4 4-4"/><path d="M4 16v3.5h16V16"/></svg></span><span class="ct"><span data-i="mData">Резервная копия и офлайн</span></span><span class="chev"></span></button>
+ <button class="cell" data-go="X" data-sec="mSrc"><span class="ic" style="--c:#8E8E93"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4M10 12h5M10 16h5"/></svg></span><span class="ct"><span data-i="mSrc">Источники правил</span></span><span class="val" id="mvSrc"></span><span class="chev"></span></button>
+ <button class="cell" data-go="X" data-sec="planP"><span class="ic" style="--c:#FF2D55"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12.5" rx="2"/><path d="M3 10.5h18M7 15h3"/></svg></span><span class="ct"><span data-i="mPlan">Тарифы</span></span><span class="val" id="mvPlan"></span><span class="chev"></span></button>
+</div>
+<p class="sh">Язык · Тіл</p>
+<div class="list pad"><div class="seg" role="group" aria-label="Язык / Тіл"><button id="lRu" aria-pressed="true">Русский</button><button id="lKk" aria-pressed="false">Қазақша</button></div></div>
+<p class="note" style="margin:12px 16px 0">Агро-помощник · версия <span id="mVer"></span></p>
+</div>
+
+<div id="risk" class="hidden">
+  <div class="seg" role="group" aria-label="Зона">
+    <button id="zN" aria-pressed="true" data-i="zN">Север (богара)</button>
+    <button id="zS" aria-pressed="false" data-i="zS">Юг (орошение)</button>
+  </div>
+  <section class="panel">
+    <label for="crop" data-i="crop">Культура</label><select id="crop"></select>
+    <div id="inputs"></div>
+    <label for="base" data-i="base">Обычный урожай поля, ц/га</label>
+    <input id="base" type="number" min="1" max="1000" inputmode="decimal">
+    <p class="note">Стартовое значение примерное, поправьте под своё поле.</p>
+  </section>
+  <section class="panel" id="wxP"></section><section class="panel result" id="res" aria-live="polite">
+    <p class="cls" id="cls"></p>
+    <div class="bar"><div class="mark" id="mark"></div></div>
+    <div class="scale"><span>низкий</span><span>средний</span><span>высокий риск</span></div>
+    <div class="sc" id="sc"></div>
+    <p class="note">Урожай по сценариям, ц/га: ориентир от вашего обычного урожая. Это сценарии, а не прогноз. Число справа вверху это индекс риска от 0 до 100.</p>
+  </section>
+  <section class="panel" id="advice"></section><section class="panel" id="sowP"></section><section class="panel" id="kgP"></section>
+</div>
+
+<section class='panel hidden' id='herd'></section><div id='past' class='hidden'><section class='panel' id='pIn'></section><section class='panel result' id='pRes' aria-live='polite'></section><section class='panel' id='nIn'></section><section class='panel result' id='nRes' aria-live='polite'></section></div><div id='feed' class='hidden'><section class='panel' id='fIn'></section><section class='panel result' id='fRes' aria-live='polite'></section></div><div id="wd" class="hidden"><section class="panel" id="wdA"></section><section class="panel result" id="wdR" aria-live="polite"></section><section class="panel" id="lcP"></section><section class="panel" id="wdB"></section></div><div id="chk" class="hidden"><section class="panel" id="chkP"></section></div><div id="cal" class="hidden"><section class="panel" id="calA"></section><section class="panel" id="calL"></section><section class="panel" id="calS"></section></div><div id="fld" class="hidden"><div id="lCards"></div><section class="panel" id="lRot" style="margin-top:16px"></section><section class="panel" id="lEco"></section></div><div id="home" class="hidden"><section class="panel" id="hWx"></section><section class="panel" id="hAtt"></section><section class="panel" id="hTask"></section><p class="sh" id="hKpiT"></p><div class="kpis" id="hKpi"></div><section class="panel" id="hCrop"></section><section class="panel" id="hProf"></section><section class="panel" id="hRisk"></section></div><div id="fieldp" class="hidden"><div class="kpis" id="gTop"></div><section class="panel" id="gHist"></section><section class="panel" id="gAdv"></section><section class="panel" id="gWarn"></section><section class="panel" id="gRec"></section></div><div id="more" class="hidden"><section class="panel" id="mFarm"></section><section class="panel" id="mPilot"></section><section class="panel" id="mSrc"></section><section class="panel" id="mData"></section><section class="panel" id="planP"></section></div><div id="diary" class="hidden">
+
+  <section class="panel">
+    <label for="dFilter" data-i="dFilter">Показать поле</label><select id="dFilter"></select>
+    <p id="dTotal" class="note"></p><div id="dSum" class="scr"></div>
+    <div id="dList"></div>
+    <div class="row"><button class="btn" id="dCsv">Скачать для Excel (CSV)</button><button class="btn" id="dPdf">Отчёт для печати или PDF</button></div>
+    <div class="row"><button class="btn" id="dExp">Показать текст для копирования</button><button class="btn" id="dFu">Обработки по месяцам (для ФУ-4)</button></div>
+    <textarea id="dOut" class="hidden" readonly aria-label="Текст дневника" rows="8"></textarea>
+    <div id="dFuOut"></div>
+  </section>
+</div>
+
+<footer data-i="foot">Прототип. Баллы, коэффициенты и стартовые значения демонстрационные: их нужно откалибровать с агрономами и данными хозяйств. Риск урожая это оценка, а не гарантия. Приложение не заменяет агронома и не даёт доз препаратов. Калькуляторы пастбищ и кормов упрощены и считают по сухому веществу. Данные хранятся только в этом браузере: делайте резервную копию на вкладке «Ещё».</footer>
+</main>
+<nav class="tabbar" aria-label="Разделы"><div class="in">
+<button id="tH"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="7" height="7" rx="2"/><rect x="13" y="4" width="7" height="7" rx="2"/><rect x="4" y="13" width="7" height="7" rx="2"/><rect x="13" y="13" width="7" height="7" rx="2"/></svg><span data-i="tH">Сводка</span></button>
+<button id="tR" class="hidden" aria-hidden="true" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 16.5a8.5 8.5 0 1 1 17 0"/><path d="M12 16.5l4.2-5.2"/><circle cx="12" cy="16.5" r="1.5" fill="currentColor"/><path d="M6.5 9.5l1 1M12 6v1.5M17.5 9.5l-1 1"/></svg><span data-i="tR">Риск</span></button>
+<button id="tD"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2.5"/><path d="M9 8h6M9 12h6M9 16h3.5"/></svg><span data-i="tD">Дневник</span></button>
+<button id="tL"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7l6-3 6 3 6-3v13l-6 3-6-3-6 3z"/><path d="M9 4v13M15 7v13"/></svg><span data-i="tL">Поля</span></button>
+<button id="tK"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8.5 3v4M15.5 3v4"/><circle cx="8.5" cy="14.5" r=".6" fill="currentColor"/><circle cx="12" cy="14.5" r=".6" fill="currentColor"/><circle cx="15.5" cy="14.5" r=".6" fill="currentColor"/></svg><span data-i="tK">План</span></button>
+<button id="tM"><svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor" stroke="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="12" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="18.5" cy="12" r="1.9"/></svg><span data-i="tM">Ещё</span></button>
+</div></nav>
+<div id="sheetW" class="sheetW hidden"><div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="shT"><div class="shh"><button id="shX" type="button">Отмена</button><b id="shT">Новая запись</b><span></span></div>
+  <section class="panel" id="dForm">
+    <label for="dField" data-i="dField">Поле</label><input id="dField" list="fields" placeholder="Например: Поле 12, северное">
+    <datalist id="fields"></datalist>
+    <label for="dDate" data-i="dDate">Дата</label><input id="dDate" type="date">
+    <p class="lbl" id="dOpL" data-i="dOp">Операция</p><div class="chips" id="dChips" role="group" aria-labelledby="dOpL"></div><select id="dOp" class="hidden" aria-hidden="true" tabindex="-1"></select>
+    <label for="dCrop" data-i="dCrop">Культура</label><input id="dCrop" list="crops" placeholder="Например: подсолнечник">
+    <datalist id="crops"></datalist>
+    <div class="two"><div><label for="dArea" data-i="dArea">Площадь поля, га</label><input id="dArea" type="number" min="0" step="0.1" inputmode="decimal"></div><div><label for="dYield" data-i="dYield">Собрано, т (при уборке)</label><input id="dYield" type="number" min="0" step="0.1" inputmode="decimal"></div></div><label for="dCost" data-i="dCost">Затраты, ₸ (необязательно)</label><input id="dCost" type="number" min="0" inputmode="decimal">
+    <div id="dPrW" class="hidden"><label for="dPr" data-i="dPr">Препарат и норма, как применили (по этикетке)</label><input id="dPr" placeholder="Например: препарат, л/га, обработано га"></div>
+    <label for="dNote" data-i="dNote">Заметка (фаза, погода, что заметили)</label><textarea id="dNote"></textarea><button class="sm hidden" id="dMic" type="button">Надиктовать заметку</button>
+    <p id="dErr" class="bad hidden" role="alert"></p>
+    <div class="row"><button class="btn" id="dLast" data-i="dLast">Как прошлая запись</button><button class="btn hidden" id="dCancel">Отменить правку</button><button class="btn main" id="dAdd" data-i="dAdd">Добавить запись</button></div>
+  </section>
+</div></div>
+<div id="onb" class="onb hidden" role="dialog" aria-modal="true" aria-labelledby="onbT"><div class="in"><div id="onb1"><svg class="appi" viewBox="0 0 512 512" aria-hidden="true"><rect width="512" height="512" rx="112" fill="#3f6b4b"/><path d="M256 420V230" stroke="#fff" stroke-width="28" stroke-linecap="round" fill="none"/><path d="M256 250c0-70 50-120 130-124-4 80-54 124-130 124z" fill="#cfe8c4"/><path d="M256 300c0-62-44-106-114-110 4 70 48 110 114 110z" fill="#fff"/><path d="M150 420h212" stroke="#c98f10" stroke-width="24" stroke-linecap="round"/></svg><h1 id="onbT">Добро пожаловать в Агро-помощник</h1><div class="feat"><span class="fi"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v2M5.6 5.6l1.4 1.4M3 12h2M19 12h2M17 7l1.4-1.4"/><circle cx="12" cy="13" r="4"/><path d="M4 20h16"/></svg></span><div><b>Сводка дня</b><span>Погода на полях, заморозки, окна для опрыскивания и задачи на неделю.</span></div></div><div class="feat"><span class="fi"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2.5"/><path d="M9 8h6M9 12h6M9 16h3.5"/></svg></span><div><b>Дневник за минуту</b><span>Операции, затраты и урожай по каждому полю, выгрузка в Excel и PDF.</span></div></div><div class="feat"><span class="fi"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7l6-3 6 3 6-3v13l-6 3-6-3-6 3z"/><path d="M9 4v13M15 7v13"/></svg></span><div><b>Поля и севооборот</b><span>Что сеять дальше, ранний возврат культур, прибыль на гектар.</span></div></div><div class="feat"><span class="fi"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 5-3 8.5-7 10-4-1.5-7-5-7-10V6z"/><path d="M9 12l2 2 4-4.5"/></svg></span><div><b>Местные правила</b><span>Пороги вредоносности, нормы пастбищ, отчёт ФУ-4 и прогноз Казгидромета.</span></div></div><div class="sp"></div><p class="note" style="text-align:center">Данные хранятся только на вашем телефоне.</p><button class="btn main" id="onbGo">Начать</button><button class="lnk" id="onbDemo">Посмотреть на демо-хозяйстве</button></div><div id="onb2" class="hidden" data-z="N"><h1>Ваше хозяйство</h1><label for="oName">Название</label><input id="oName" placeholder="Например: КХ «Береке»"><div id="onbReg" style="margin-top:14px"></div><p class="lbl">Зона земледелия</p><div class="seg" role="group" aria-label="Зона"><button id="oZN" aria-pressed="true">Север (богара)</button><button id="oZS" aria-pressed="false">Юг (орошение)</button></div><p class="note">Зона задаёт список культур, пороги жары и сезонные подсказки. Её можно сменить на экране «Риск урожая».</p><div class="sp"></div><button class="btn main" id="onbDone">Готово</button></div></div></div>
+<div id="printArea"></div>
+<div id="toast" class="toast hidden" role="status"><span id="toastT"></span><button id="toastB"></button></div>
+
+<script>
+/* Хозяйства: у каждого свои данные. Первое хозяйство хранит данные под старыми ключами (совместимость с версией 0.1) */
+var APPV="0.5";
+var FARMS={list:[{id:"f1",name:"Моё хозяйство"}],cur:"f1"};try{var fz=JSON.parse(localStorage.getItem("agro_farms_v1")||"null");if(fz&&fz.list&&fz.list.length)FARMS=fz}catch(e){}
+if(!FARMS.list.some(function(f){return f.id==FARMS.cur}))FARMS.cur=FARMS.list[0].id;
+function FK(k,id){id=id||FARMS.cur;return id=="f1"?k:k+"@"+id}
+function saveFarms(){try{localStorage.setItem("agro_farms_v1",JSON.stringify(FARMS))}catch(e){}}
+function lsJ(k,id,def){try{var v=JSON.parse(localStorage.getItem(FK(k,id))||"null");return v==null?def:v}catch(e){return def}}
+var W=["w","g","c"];
+var CFG={
+N:{name:"Север, богара",crops:[["Яровая пшеница",15,1],["Ячмень",18,.9],["Подсолнечник",12,.8],["Рапс",10,1.2],["Лён масличный",8,1.1],["Горох",15,1],["Картофель",200,1.2],["Многолетние травы (сено)",25,.8],["Кукуруза на силос",250,1]],f:[
+ {id:"w",l:"Запас продуктивной влаги в метровом слое",o:[["меньше 60 мм",30],["60–100 мм",18],["100–140 мм",8],["больше 140 мм",0]],t:"Влаги мало: снижайте норму высева, сохраняйте стерню и снег, применяйте влагосберегающую обработку."},
+ {id:"g",l:"Прогноз увлажнения (ГТК)",o:[["меньше 0,5, сильная засуха",25],["0,5–0,8, засушливо",15],["0,8–1,3, недостаточное увлажнение",5],["больше 1,3, достаточно или влажно",0]],t:"Ожидается дефицит увлажнения: пересмотрите структуру посевов и подумайте о страховании."},
+ {id:"p",l:"Предшественник",o:[["та же культура подряд",15],["культура той же группы",9],["другая группа культур",3],["пар или бобовые",0]],t:"Слабый предшественник: введите в севооборот пар, бобовые или культуру другой группы."},
+ {id:"s",l:"Срок сева или посадки",o:[["сильно вне окна",12],["ранний или поздний",6],["в оптимальном окне",0]],t:"Срок вне окна: ориентируйтесь на прогноз сроков сева Казгидромета и рекомендации для культуры."},
+ {id:"h",l:"Гумус в пахотном слое",o:[["меньше 3 %",10],["3–4,5 %",5],["больше 4,5 %",0]],t:"Гумуса мало: сохраняйте пожнивные остатки, вносите органику, вводите сидераты."},
+ {id:"t",l:"Жара выше +30 °C в цветение и налив",o:[["до 3 дней",0],["4–8 дней",8],["больше 8 дней",15]],t:"Жара в цветение и налив: подбирайте более жаростойкие сорта и сроки сева, чтобы критические фазы реже попадали на пик жары."},
+ {id:"x",l:"Засорённость поля (по порогу вредоносности)",o:[["ниже порога",0],["около порога",8],["выше порога",18]],t:"Засорённость: пройдите вкладку «Сорняки», выберите метод борьбы по виду сорняка и срок по фазам."}]},
+S:{name:"Юг, орошение",crops:[["Хлопок (сырец)",25,1.1],["Рис",50,1.3],["Кукуруза на зерно",60,1],["Соя",20,1],["Сахарная свёкла",300,1.2],["Овощи (томаты)",350,1.2],["Люцерна (сено)",60,.9],["Озимая пшеница",35,1]],f:[
+ {id:"w",l:"Водообеспеченность (от потребности культуры)",o:[["меньше 50 %",35],["50–70 %",22],["70–90 %",10],["больше 90 %",0]],t:"Воды не хватает: сократите площадь водоёмких культур и составьте график поливов заранее."},
+ {id:"c",l:"Положение поля на канале",o:[["хвост канала",15],["середина",7],["голова",0]],t:"Хвост канала: договаривайтесь о графике, копите воду в ёмкостях или пруду, экономьте при поливе."},
+ {id:"z",l:"Засоление почвы",o:[["сильное",20],["среднее",10],["слабое или нет",0]],t:"Засоление: промывной режим, дренаж, солеустойчивые культуры."},
+ {id:"i",l:"Способ полива",o:[["по бороздам",8],["дождевание",4],["капельное",0]],t:"Борозды теряют много воды: оцените дождевание или капельное, посчитайте окупаемость."},
+ {id:"m",l:"Предшественник",o:[["та же культура",10],["другая культура",0]],t:"Монокультура: введите севооборот."},
+ {id:"h",l:"Гумус",o:[["меньше 1,5 %",10],["1,5–2,5 %",5],["больше 2,5 %",0]],t:"Гумуса мало: органические удобрения, сидераты."},
+ {id:"t",l:"Жара выше +35 °C в цветение и плодообразование",o:[["до 3 дней",0],["4–8 дней",8],["больше 8 дней",15]],t:"Жара в критические фазы: выбирайте жаростойкие культуры и сорта, не допускайте нехватки воды в эти недели."},
+ {id:"x",l:"Засорённость поля (по порогу вредоносности)",o:[["ниже порога",0],["около порога",8],["выше порога",18]],t:"Засорённость: пройдите вкладку «Сорняки», выберите метод борьбы по виду сорняка и срок по фазам."}]}};
+var st={z:"N",ci:{N:0,S:0},v:{N:{},S:{}},b:{},w:{}};
+try{var s0=JSON.parse(localStorage.getItem(FK("agro_risk_v1"))||"null");if(s0&&CFG[s0.z]){st.z=s0.z;["N","S"].forEach(function(z){var i=s0.ci&&+s0.ci[z];st.ci[z]=i>=0&&i<CFG[z].crops.length?i:0;st.v[z]=s0.v&&s0.v[z]||{}});st.b=s0.b||{};st.w=s0.w||{}}}catch(e){}
+function saveRisk(){try{localStorage.setItem(FK("agro_risk_v1"),JSON.stringify(st))}catch(e){}}
+function bKey(){return st.z+st.ci[st.z]}
+function baseVal(){var v=st.b[bKey()];return v>0?v:CFG[st.z].crops[st.ci[st.z]][1]}
+var $=function(i){return document.getElementById(i)};
+var esc=function(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})};
+var NAMES=["Низкий риск","Средний риск","Высокий риск"],CL=["g","y","r"];
+
+function renderRisk(){
+ var c=CFG[st.z],h="";
+ $("crop").innerHTML=c.crops.map(function(x,i){return'<option value="'+i+'"'+(i==st.ci[st.z]?" selected":"")+">"+x[0]+"</option>"}).join("");
+ c.f.forEach(function(f){
+  h+='<label for="f_'+f.id+'">'+f.l+'</label><select id="f_'+f.id+'" data-id="'+f.id+'">'+f.o.map(function(o,i){return'<option value="'+i+'"'+((st.v[st.z][f.id]||0)==i?" selected":"")+">"+o[0]+"</option>"}).join("")+"</select>";
+ });
+ $("inputs").innerHTML=h;
+ $("base").value=baseVal();
+ Array.prototype.forEach.call($("inputs").querySelectorAll("select"),function(s){s.onchange=function(){st.v[st.z][s.dataset.id]=+s.value;calc()}});
+ calc();
+}
+function calc(){
+ var c=CFG[st.z],mu=c.crops[st.ci[st.z]][2],sum=0,max=0,rows=[];
+ c.f.forEach(function(f){
+  var k=W.indexOf(f.id)>=0?mu:1,i=st.v[st.z][f.id]||0,p=f.o[i][1]*k,m=Math.max.apply(null,f.o.map(function(o){return o[1]}))*k;
+  sum+=p;max+=m;rows.push({f:f,p:p});
+ });
+ var idx=Math.round(sum/max*100),k=idx<25?0:idx<50?1:2,x=idx/100,b=+$("base").value||0;sow();wxShow();
+ $("cls").innerHTML=NAMES[k]+'<span class="num" aria-label="индекс '+idx+' из 100">'+idx+'</span>';$("cls").className="cls "+CL[k];
+ $("res").className="panel result "+(k==1?"y":k==2?"r":"");
+ $("mark").style.left=Math.min(100,idx)+"%";
+ var sc=[["Сухой год",1-x*.8-.15],["Средний год",1-x*.6],["Влажный год",1-x*.35+.05]];
+ $("sc").innerHTML=sc.map(function(s){var v=Math.max(.1,Math.min(1.1,s[1]))*b;return"<div><b>"+(v>=100?Math.round(v):num(v.toFixed(1)))+"</b><span>"+s[0]+"</span></div>"}).join("");
+ var top=rows.filter(function(q){return q.p>0}).sort(function(a,d){return d.p-a.p}).slice(0,3);
+ $("advice").innerHTML="<h2>Что улучшить в первую очередь</h2>"+(top.length?"<ul>"+top.map(function(q){return"<li><b>"+q.f.l+":</b> "+q.f.t+fbBtns("adv_"+st.z+"_"+q.f.id)+"</li>"}).join("")+"</ul>":"<p>Слабых мест по введённым данным нет. Следите за погодой и сроками работ.</p>");
+ saveRisk();
+}
+function setZone(z){st.z=z;$("zN").setAttribute("aria-pressed",z=="N");$("zS").setAttribute("aria-pressed",z=="S");renderRisk();wx()}
+$("zN").onclick=function(){setZone("N")};$("zS").onclick=function(){setZone("S")};
+$("crop").onchange=function(){st.ci[st.z]=+$("crop").value;$("base").value=baseVal();calc()};
+$("base").oninput=function(){var v=+$("base").value;if(v>0)st.b[bKey()]=v;else delete st.b[bKey()];calc()};
+
+/* Общие помощники */
+var MON=["январь","февраль","март","апрель","май","июнь","июль","август","сентябрь","октябрь","ноябрь","декабрь"];
+var MONG=["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"];
+function dmy(s){return s?s.slice(8,10)+"."+s.slice(5,7)+"."+s.slice(0,4):""}
+function iso(d){return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2)}
+function num(x){return String(x).replace(".",",")}
+function toast(msg,btn,fn){var t=$("toast");$("toastT").textContent=msg;$("toastB").textContent=btn||"";$("toastB").classList.toggle("hidden",!btn);$("toastB").onclick=function(){t.classList.add("hidden");if(fn)fn()};t.classList.remove("hidden");clearTimeout(toast.h);toast.h=setTimeout(function(){t.classList.add("hidden")},btn?9000:3500)}
+function download(name,text,type){try{var b=new Blob([text],{type:type}),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},1500)}catch(e){toast("Браузер не дал сохранить файл. Воспользуйтесь текстом для копирования.")}}
+function csvCell(v){v=String(v==null?"":v);return /[;"\n\r]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}
+
+/* Пилот: замеры для проверки гипотез */
+var PILOT={t:[],fb:{},nps:null,cm:""};try{var p0=JSON.parse(localStorage.getItem("agro_pilot_v1")||"null");if(p0){PILOT.t=p0.t||[];PILOT.fb=p0.fb||{};PILOT.nps=p0.nps==null?null:p0.nps;PILOT.cm=p0.cm||""}}catch(e){}
+function savePilot(){try{localStorage.setItem("agro_pilot_v1",JSON.stringify(PILOT))}catch(e){}}
+function fbBtns(id){var v=PILOT.fb[id];return'<div><button class="sm" data-fb="'+esc(id)+'" data-v="1" aria-pressed="'+(v===1)+'">Полезно</button><button class="sm" data-fb="'+esc(id)+'" data-v="0" aria-pressed="'+(v===0)+'">Не нужно</button></div>'}
+document.addEventListener("click",function(ev){var b=ev.target.closest&&ev.target.closest("[data-fb]");if(!b)return;var id=b.dataset.fb,v=+b.dataset.v;if(PILOT.fb[id]===v)delete PILOT.fb[id];else PILOT.fb[id]=v;savePilot();Array.prototype.forEach.call(b.parentNode.querySelectorAll("[data-fb]"),function(x){x.setAttribute("aria-pressed",PILOT.fb[id]===+x.dataset.v)})});
+
+/* Дневник */
+var OPS=["Обработка почвы","Сев или посадка","Удобрения","Полив","Защита растений","Осмотр поля","Уборка","Другое"];
+var LS="agro_diary_v1",D=[];var AR={};try{AR=JSON.parse(localStorage.getItem(FK("agro_fields_v1"))||"{}")||{}}catch(e){AR={}}
+try{D=JSON.parse(localStorage.getItem(FK(LS))||"[]");if(!Array.isArray(D))D=[]}catch(e){D=[]}
+function save(){try{localStorage.setItem(FK(LS),JSON.stringify(D))}catch(e){toast("Не удалось сохранить: память браузера недоступна или заполнена.")}}
+function saveAR(){try{localStorage.setItem(FK("agro_fields_v1"),JSON.stringify(AR))}catch(e){}}
+function today(){return iso(new Date())}
+function fmt(n){return Math.round(n).toLocaleString("ru-RU")}
+function fieldsList(){var fs=[];D.forEach(function(e){if(fs.indexOf(e.f)<0)fs.push(e.f)});return fs.sort()}
+function dFiltered(){var flt=$("dFilter").value;return D.filter(function(e){return!flt||e.f==flt})}
+function byDateAsc(a,b){return a.d<b.d?-1:a.d>b.d?1:a.id-b.id}
+/* Итоги считаем по полю и сезону (году записи), чтобы не смешивать урожаи и затраты разных лет */
+function seasonSum(list){var g={};list.forEach(function(e){var y=String(cropYear(e)),k=e.f+"|"+y,o=g[k]=g[k]||{f:e.f,y:y,c:0,q:0};o.c+=+e.c||0;o.q+=+e.y||0});return Object.keys(g).map(function(k){return g[k]}).sort(function(a,b){return a.f<b.f?-1:a.f>b.f?1:b.y-a.y})}
+function sumTable(rows){return rows.length?"<table><tr><th>Поле</th><th>Год</th><th>га</th><th>₸ всего</th><th>₸/га</th><th>ц/га</th></tr>"+rows.map(function(o){var a=AR[o.f]||0;return"<tr><td>"+esc(o.f)+"</td><td>"+o.y+"</td><td>"+(a?num(a):"–")+"</td><td>"+fmt(o.c)+"</td><td>"+(a&&o.c?fmt(o.c/a):"–")+"</td><td>"+(a&&o.q?num((o.q*10/a).toFixed(1)):"–")+"</td></tr>"}).join("")+"</table>":""}
+$("dOp").innerHTML=OPS.map(function(o){return"<option>"+o+"</option>"}).join("");
+var all=[];["N","S"].forEach(function(z){CFG[z].crops.forEach(function(c){if(all.indexOf(c[0])<0)all.push(c[0])})});
+$("crops").innerHTML=all.map(function(c){return'<option value="'+c+'">'}).join("");
+$("dDate").value=today();
+var t0=null;
+["dField","dDate","dOp","dCrop","dArea","dYield","dCost","dPr","dNote"].forEach(function(id){$(id).addEventListener("focus",function(){if(!t0)t0=Date.now()})});
+function opToggle(){$("dPrW").classList.toggle("hidden",$("dOp").value!="Защита растений");if($("dChips").children.length)chipsSync()}
+$("dOp").onchange=opToggle;
+function dErr(msg,id){var e=$("dErr");e.textContent=msg;e.classList.remove("hidden");if(id)$(id).focus()}
+var EDIT=null;
+function endEdit(){EDIT=null;t0=null;$("dAdd").textContent=LANG=="kk"&&KK.dAdd?KK.dAdd:"Добавить запись";$("dCancel").classList.add("hidden");$("dLast").classList.remove("hidden");["dNote","dCost","dYield","dPr"].forEach(function(id){$(id).value=""});$("dDate").value=today()}
+$("dCancel").onclick=function(){endEdit();renderDiary()};
+$("dAdd").onclick=function(){
+ $("dErr").classList.add("hidden");
+ var f=$("dField").value.trim();
+ if(!f){dErr("Укажите поле.","dField");return}
+ var bad=["dArea","dYield","dCost"].filter(function(id){var v=$(id).value;return v!==""&&!(+v>=0)});
+ if(bad.length){dErr("Площадь, сбор и затраты не могут быть отрицательными.",bad[0]);return}
+ if(PLAN=="free"){var f0=fieldsList();if(f0.indexOf(f)<0&&f0.length>=3){PM="Бесплатный тариф: дневник до 3 полей. Полный дневник входит в тариф «Хозяйство».";tab("T");return}}
+ var ar=+$("dArea").value,op=$("dOp").value;if(ar>0){AR[f]=ar;saveAR()}
+ if(EDIT!=null){var ed=D.filter(function(q){return q.id==EDIT})[0];if(ed){ed.f=f;ed.d=$("dDate").value||ed.d;ed.o=op;ed.cr=$("dCrop").value.trim();ed.c=+$("dCost").value||0;ed.y=+$("dYield").value||0;ed.p=op=="Защита растений"?$("dPr").value.trim():"";ed.n=$("dNote").value.trim()}save();endEdit();closeSheet();refreshData();toast("Изменения сохранены.");return}
+ D.push({id:Date.now(),f:f,d:$("dDate").value||today(),o:op,cr:$("dCrop").value.trim(),c:+$("dCost").value||0,y:+$("dYield").value||0,p:op=="Защита растений"?$("dPr").value.trim():"",n:$("dNote").value.trim()});
+ if(t0){var sec=Math.round((Date.now()-t0)/1000);if(sec>0&&sec<1800){PILOT.t.push(sec);savePilot()}}t0=null;
+ save();$("dNote").value="";$("dCost").value="";$("dYield").value="";$("dPr").value="";closeSheet();refreshData();toast("Запись добавлена.");
+};
+$("dLast").onclick=function(){var l=D.slice().sort(function(a,b){return b.id-a.id})[0];if(!l){toast("Записей пока нет.");return}if(!t0)t0=Date.now();$("dField").value=l.f;$("dCrop").value=l.cr||"";$("dOp").value=l.o;$("dArea").value=AR[l.f]||"";opToggle();$("dNote").focus()};
+var SRec=window.SpeechRecognition||window.webkitSpeechRecognition;
+if(SRec){$("dMic").classList.remove("hidden");$("dMic").onclick=function(){try{var r=new SRec();r.lang=LANG=="kk"?"kk-KZ":"ru-RU";r.interimResults=false;r.maxAlternatives=1;
+ r.onresult=function(ev){var t=ev.results[0][0].transcript;$("dNote").value=($("dNote").value?$("dNote").value+" ":"")+t};
+ r.onerror=function(ev){toast(ev.error=="not-allowed"?"Нет доступа к микрофону.":"Не удалось распознать речь. Для диктовки обычно нужен интернет.")};
+ r.onend=function(){$("dMic").textContent="Надиктовать заметку";$("dMic").setAttribute("aria-pressed","false")};
+ $("dMic").textContent="Слушаю… говорите";$("dMic").setAttribute("aria-pressed","true");if(!t0)t0=Date.now();r.start()}catch(e){toast("Диктовка недоступна в этом браузере.")}}}
+$("dFilter").onchange=renderDiary;$("dField").onchange=function(){var a=AR[$("dField").value.trim()];if(a)$("dArea").value=a};
+$("dExp").onclick=function(){
+ var list=dFiltered().sort(byDateAsc);
+ $("dOut").value=list.length?list.map(function(e){return[dmy(e.d),e.f,e.o,e.cr,AR[e.f]?num(AR[e.f])+" га":"",e.c?fmt(e.c)+" ₸":"",e.y?"собрано "+num(e.y)+" т":"",e.p,e.n].filter(Boolean).join(" | ")}).join("\n"):"Записей нет.";
+ $("dOut").classList.remove("hidden");$("dOut").select();
+ try{navigator.clipboard.writeText($("dOut").value).then(function(){toast("Текст скопирован.")},function(){})}catch(e){}
+};
+$("dCsv").onclick=function(){
+ var list=dFiltered().sort(byDateAsc);if(!list.length){toast("Нет записей для выгрузки.");return}
+ var h=["Дата","Поле","Культура","Операция","Площадь поля, га","Затраты, ₸","Собрано, т","Препарат и норма","Заметка"];
+ var rows=list.map(function(e){return[dmy(e.d),e.f,e.cr,e.o,AR[e.f]?num(AR[e.f]):"",e.c||"",e.y?num(e.y):"",e.p||"",e.n]});
+ download("agro-dnevnik-"+today()+".csv","﻿"+[h].concat(rows).map(function(r){return r.map(csvCell).join(";")}).join("\r\n"),"text/csv;charset=utf-8");
+};
+$("dPdf").onclick=function(){
+ var list=dFiltered().sort(byDateAsc),flt=$("dFilter").value;if(!list.length){toast("Нет записей для отчёта.");return}
+ $("printArea").innerHTML="<h1>Дневник полей</h1><p>"+(flt?"Поле: "+esc(flt):"Все поля")+" · сформировано "+dmy(today())+"</p><h2>Итоги по сезонам</h2>"+sumTable(seasonSum(list))+"<h2>Записи</h2><table><tr><th>Дата</th><th>Поле</th><th>Культура</th><th>Операция</th><th>₸</th><th>Собрано, т</th><th>Препарат и норма</th><th>Заметка</th></tr>"+list.map(function(e){return"<tr><td>"+dmy(e.d)+"</td><td>"+esc(e.f)+"</td><td>"+esc(e.cr||"")+"</td><td>"+esc(e.o)+"</td><td>"+(e.c?fmt(e.c):"")+"</td><td>"+(e.y?num(e.y):"")+"</td><td>"+esc(e.p||"")+"</td><td>"+esc(e.n||"")+"</td></tr>"}).join("")+"</table><p>Отчёт сформирован в прототипе «Агро-помощник» по записям хозяйства. Чтобы получить PDF, в окне печати выберите «Сохранить как PDF».</p>";
+ window.print();
+};
+function fuDeadline(m){var y=+m.slice(0,4),mo=+m.slice(5,7);return iso(new Date(y,mo,5))}
+$("dFu").onclick=function(){
+ var pr=D.filter(function(e){return e.o=="Защита растений"}).sort(byDateAsc),g={};
+ pr.forEach(function(e){var m=e.d.slice(0,7);(g[m]=g[m]||[]).push(e)});
+ var ks=Object.keys(g).sort().reverse();
+ $("dFuOut").innerHTML="<h2 style='margin-top:14px'>Химические обработки по месяцам</h2>"+(ks.length?ks.map(function(m){var mo=+m.slice(5,7),dl=fuDeadline(m),late=dl<today();return"<p class=grp>"+MON[mo-1]+" "+m.slice(0,4)+(mo>=3&&mo<=9?" · сдать до "+dmy(dl)+(late?" (срок прошёл)":""):" · вне сезона отчётности")+"</p><div class=scr><table><tr><th>Дата</th><th>Поле</th><th>Культура</th><th>га</th><th>Препарат и норма</th></tr>"+g[m].map(function(e){return"<tr><td>"+dmy(e.d)+"</td><td>"+esc(e.f)+"</td><td>"+esc(e.cr||"")+"</td><td>"+(AR[e.f]?num(AR[e.f]):"–")+"</td><td>"+esc(e.p||"не указано")+"</td></tr>"}).join("")+"</table></div>"}).join(""):"<p>Записей с операцией «Защита растений» нет.</p>")+"<p class=note>Помощь для заполнения формы ФУ-4 «Отчёт о проведении химических обработок»: в сезон (март–сентябрь) её подают в районную территориальную инспекцию ежемесячно, до 5 числа следующего месяца. Здесь указана площадь всего поля: если обрабатывали часть, впишите обработанную площадь в поле «Препарат и норма». Графы формы сверяйте с действующей редакцией приказа.</p>";
+};
+var SP=[['c','КРС',50,11],['s','Овцы и козы',100,1.6],['h','Лошади',10,10]];
+var FD=[['fh','Сено, т (сухого вещества около 85 %)',100,.85],['fs','Солома, т (около 85 %)',20,.85],['fa','Сенаж, т (около 45 %)',0,.45],['fl','Силос, т (около 30 %)',60,.3],['fk','Концентраты и зерно, т (около 87 %)',10,.87]];
+var n=function(id){return Math.max(0,+$(id).value||0)};
+var f1=function(x){return x.toLocaleString('ru-RU',{maximumFractionDigits:1})};
+var inp=function(id,v,al,step){return `<input id='${id}' type='number' min='0' step='${step||1}' value='${v}' inputmode='decimal'${al?` aria-label='${al}'`:''}>`};
+var dm=function(){return SP.reduce(function(s,x){return s+n('h_'+x[0])*n('i_'+x[0])},0)};
+$('herd').innerHTML=`<h2>Стадо</h2>`+SP.map(function(s){return `<label for='h_${s[0]}'>${s[1]}: голов и кг сухого вещества на голову в сутки</label><div class='two'>${inp('h_'+s[0],s[2])}${inp('i_'+s[0],s[3],s[1]+', кг сухого вещества на голову в сутки','0.1')}</div>`}).join('')+`<p class='note'>Потребление обычно 2–3 % живой массы в сутки. Числа примерные: подставьте свои.</p>`;
+$('pIn').innerHTML=`<h2>Пастбищный калькулятор</h2><label for='paA'>Площадь пастбища, га</label>${inp('paA',600)}<label for='paY'>Урожайность пастбищного корма, ц сухой массы с га</label>${inp('paY',4,'','0.1')}<label for='paK'>Доля корма, которую можно использовать без вреда травостою, %</label>${inp('paK',50)}<label for='paD'>Пастбищный период, дней</label>${inp('paD',150)}<p class='note'>Урожайность и доля это пример для расчёта. Возьмите данные землеустройства или своего хозяйства.</p>`;
+$('fIn').innerHTML=`<h2>Кормовой баланс на зиму</h2><label for='fD'>Стойловый период, дней</label>${inp('fD',200)}<label for='fL'>Потери при хранении и скармливании, %</label>${inp('fL',10)}`+FD.map(function(x){return `<label for='${x[0]}'>${x[1]}</label>${inp(x[0],x[2])}`}).join('')+`<label for='fP'>Цена сена для докупки, ₸ за тонну (необязательно)</label>${inp('fP','')}<p class='note'>Стартовые числа это пример. Расчёт идёт по сухому веществу: питательность (кормовые единицы, протеин) не учитывается, сверьтесь с зоотехником.</p>`;
+function sow(){var z=st.z,nm=CFG[z].crops[st.ci[z]][0],t;
+ if(z=='N')t=/пшеница|Ячмень/.test(nm)?'Яровые зерновые: в основном май. Опытная станция СКО называла 13 мая – 5 июня, в сухой год сроки сдвигаются.':/Горох|Подсолнечник|Рапс|Лён/.test(nm)?'Зернобобовые и масличные: ориентир 12–28 мая по рекомендациям опытной станции СКО.':nm=='Картофель'?'Картофель: ориентир 15–31 мая по рекомендациям опытной станции СКО.':'Для этой культуры надёжного ориентира в найденных материалах нет: уточните срок у агронома или на опытной станции.';
+ else{var SWS={"Хлопок (сырец)":"Хлопчатник теплолюбив: сеют, когда почва на глубине 10 см устойчиво прогрелась до +12…+14 °C и миновали заморозки, на юге обычно в апреле.","Рис":"Рис сеют при прогреве почвы и воды до +12…+14 °C и выше, обычно в конце апреля – мае.","Кукуруза на зерно":"Кукурузу сеют при прогреве почвы на глубине заделки до +10…+12 °C, обычно в апреле – начале мая.","Соя":"Сою сеют при прогреве почвы на глубине заделки до +12…+14 °C, обычно в конце апреля – мае.","Сахарная свёкла":"Сахарная свёкла холодостойкая и сеется рано: как только почва на глубине заделки прогреется до +6…+8 °C и её можно качественно обработать, обычно в конце марта – апреле. Запоздание с севом снижает урожай.","Овощи (томаты)":"Рассаду томатов высаживают после окончания заморозков, когда почва прогрелась до +12…+15 °C.","Люцерна (сено)":"Люцерну сеют ранней весной (под покров или без покрова), при поливе возможен и летний сев. Надёжного ориентира по датам в найденных материалах нет.","Озимая пшеница":"Озимая пшеница сеется осенью, чтобы до зимы растения успели раскуститься. Сроки зависят от области: уточните в рекомендациях опытной станции."};t=(SWS[nm]||"Надёжного ориентира в найденных материалах нет.")+" Температура почвы это общий агрономический ориентир: точный срок для района уточните у агронома."}
+ $('sowP').innerHTML='<h2>Срок сева: '+nm+'</h2><p>'+t+'</p><details><summary>Яровые зерновые по регионам (прогнозы Казгидромета)</summary><ul><li>Костанайская, Акмолинская, Павлодарская, Северо-Казахстанская: чаще всего май, в 2022 году первая и вторая декады мая.</li><li>Западно-Казахстанская и Актюбинская: третья декада апреля – первая декада мая.</li><li>Карагандинская, Восточно-Казахстанская: первая и вторая декады мая.</li><li>Юг: середина марта – начало апреля, в предгорьях начало мая.</li></ul></details><p class=note>Это ориентиры прошлых лет. Каждую весну Казгидромет публикует новый прогноз сроков сева, сверяйтесь с ним.</p>'}
+var KG={y:2026,u:'https://kazhydromet.kz/uploads/files_calendar/11246/file/69f2d0095cec2prognoz-srokov-seva-okonchatelnyy-v-2026-god.pdf',d:{
+'Западно-Казахстанская':['Байтерекский (Погодаево)|т|07.05–14.05','Уральск|т|08.05–15.05','Жанибекский (Джаныбек)|т|03.05–10.05','Сырымский (Джамбейты)|т|07.05–14.05','Таскалинский (Каменка)|т|08.05–15.05','Теректинский (Федоровка)|т|08.05–15.05','Теректинский (Анкатинский)|т|07.05–14.05','Чингирлауский (Чингирлау)|т|08.05–15.05'],
+'Актюбинская':['Айтекебийский (Комсомольское)|л|09.05–16.05','Алгинский (Ильинский)|т|28.04–05.05','Каргалинский (Кос-Истек)|т|09.05–16.05','Кобдинский (Новоалексеевка)|т|08.05–15.05','Мартукский (Мартук)|л|03.05–10.05','Мартукский (Мартук)|т|12.05–19.05','Мартукский (Родниковка)|т|08.05–15.05','Мартукский (Родниковка, вторая станция)|т|11.05–18.05','Мугалжарский (Джурун)|л|02.05–09.05','Хромтауский (Новороссийское)|т|05.05–12.05','Хромтауский (Новороссийское)|л|08.05–15.05'],
+'Костанайская':['Алтынсаринский (Силантьевка)|т|08.05–18.05','Аулиекольский (Диевская)|с|08.05–18.05','Б. Майлина (Тобол)|с|10.05–20.05','Аркалык (Екидын)|т|30.04–10.05','Денисовский (Аршалинский СВХ)|с|09.05–19.05','Джангельдинский (Торгай)|с|05.05–15.05','Житикаринский (Житикара)|с|09.05–19.05','Карабалыкский (Карабалык)|с|09.05–19.05','Карасуский (Карасу)|т|11.05–21.05','Карасуский (Железнодорожный)|т|10.05–20.05','Костанайский (Костанай)|л|13.05–23.05','Мендыкаринский (Михайловка)|с|10.05–20.05','Наурузумский (Раздольное)|с|06.05–16.05','Сарыкольский (Сарыколь)|т|11.05–21.05','Узункольский (Пресногорьковка)|с|12.05–22.05','Федоровский (Кень-Аральский)|с|13.05–23.05'],
+'Северо-Казахстанская':['Шал акына (Сергеевка)|т|10.05–20.05','Айыртауский (Саумалколь)|т|15.05–25.05','Акжарский (Талшик)|т|10.05–20.05','Аккайынский (Смирново)|т|12.05–22.05','Г. Мусрепова (Рузаевка)|т|11.05–21.05','Есильский (Явленка)|с|14.05–24.05','Жамбылский (Благовещенка)|с|13.05–23.05','Кызылжарский (Налобино)|т|12.05–22.05','М. Жумабаева (Булаево)|т|12.05–22.05','М. Жумабаева (Возвышенка)|т|10.05–20.05','Мамлютский (Мамлютка)|т|12.05–22.05','Тайыншинский (Тайынша)|т|13.05–23.05','Тайыншинский (Чкалово)|т|13.05–23.05','Тимирязевский (Тимирязево)|т|11.05–21.05','Уалихановский (Актуесай)|т|10.05–20.05'],
+'Акмолинская':['Аршалинский (Аршалы)|л|07.05–17.05','Астраханский (Жалтыр)|л|06.05–16.05','Атбасарский (Атбасар)|л|07.05–17.05','Аккольский (Акколь)|т|10.05–20.05','Буландынский (Вознесенка)|л|13.05–23.05','Бурабайский (Щучинск)|т|13.05–23.05','Биржан сал (Степняк)|т|13.05–23.05','Егиндыкольский (Егиндыколь)|т|09.05–19.05','Ерейментауский (Ерейментау)|л|05.05–15.05','Есильский (Есиль)|т|07.05–17.05','Жаксынский (Жаксы)|л|08.05–18.05','Жаркайынский (Тасты-Талды)|л|05.05–15.05','Зерендинский (Зеренды)|т|15.05–25.05','Коргалжинский (Коргалжин)|л|03.05–13.05','Сандыктауский (Балкашено)|т|15.05–25.05','Целиноградский (Малиновка)|т|05.05–15.05','Шортандинский (Шортанды)|т|10.05–20.05'],
+'Павлодарская':['Актогайский (Жолболды)|л|03.05–13.05','Железинский (Михайловка)|с|15.05–25.05','Иртышский (Голубовка)|с|08.05–18.05','Павлодарский (Красноармейка)|т|15.05–25.05','Теренкольский (Федоровка)|л|15.05–25.05','Успенский (Лозовая)|л|10.05–20.05','Успенский (Успенка)|т|12.05–22.05','Шарбактинский (Шарбакты)|л|12.05–22.05'],
+'Карагандинская':['Абайский (Агрогородок)|т|05.05–15.05','Бухар-Жырауский (Кар. СХОС)|т|09.05–19.05','Бухар-Жырауский (Корнеевка)|т|10.05–20.05','Каркаралинский (Бес-Оба)|л|05.05–15.05','Каркаралинский (Каркаралы)|л|05.05–15.05','Нуринский (Кобетей)|т|10.05–20.05','Осакаровский (Есиль)|т|09.05–19.05','Шетский (Кызылтау)|л|03.05–13.05'],
+'Улытауская':['Жана-Аркинский (Ескене)|л|28.04–08.05'],
+'Абайская':['Бескарагайский (Семиярка)|т|05.05–15.05','Бородулихинский (Дмитриевка)|л|06.05–16.05','Жарминский (Жалгызтобе)|т|04.05–14.05','Уржарский (Уржар)|л|23.04–03.05'],
+'Восточно-Казахстанская':['Алтай (Зыряновск)|т|13.05–23.05','Шемонаиха|т|13.05–23.05','Глубоковский (Секисовка)|т|12.05–22.05','Самарский (Самарка)|л|05.05–15.05','Тарбагатайский (Акжар)|л|04.05–14.05','Уланский (Ново-Ахмирово)|л|07.05–17.05','Улкен Нарынский (Улькен-Нарын)|т|06.05–16.05'],
+'Жетісу':['Алакольский (Лепси)|т|01.05–08.05','Талдыкорган|с|15.04–22.04','Каратальский (Уштобе)|л|15.04–22.04','Кербулакский (Когалы)|т|01.05–08.05','Панфиловский (Жаркент)|с|14.04–21.04'],
+'Алматинская':['Енбекшиказахский (Шелек, лёгкая почва)|л|13.04–20.04','Енбекшиказахский (Шелек, средняя почва)|с|15.04–22.04','Жамбылский (Аккайнар)|с|15.04–22.04','Уйгурский (Кыргызсай)|с|21.04–28.04']}};
+var SL={'т':'тяжёлая','с':'средняя','л':'лёгкая'};
+/* Прогноз действует на один сезон: после сева ${KG.y} он устаревает, новый выходит весной */
+function kgStale(){var d=new Date(),y=d.getFullYear(),m=d.getMonth()+1;if(y<KG.y||(y==KG.y&&m<=7))return'';var ny=m>=8?y+1:y;return `<p class=warn>Это прогноз на ${KG.y} год. Прогноз на ${ny} год Казгидромет публикует весной (предварительный в марте – апреле): до этого используйте даты только как ориентир и в марте обновите данные.</p>`}
+function kgR(){var o=$('kO').value,L=KG.d[o]||[],i=+$('kR').value||0,p=(L[i]||'').split('|');$('kRes').innerHTML=p[0]?`<p class=cls style='font-size:1.3rem'>${p[2]}</p><p>Оптимальные сроки сева яровых зерновых в ${KG.y} году. Почва: ${SL[p[1]]}.</p>`:'';}
+function kgSave(){try{localStorage.setItem(FK('agro_kg_v1'),JSON.stringify([$('kO').value,+$('kR').value||0]))}catch(e){}}
+function kgO(){var o=$('kO').value;$('kR').innerHTML=KG.d[o].map(function(s,i){return `<option value='${i}'>${s.split('|')[0]}</option>`}).join('');kgR()}
+$('kgP').innerHTML=`<h2>Прогноз Казгидромета: сроки сева яровых зерновых, ${KG.y}</h2>${kgStale()}<label for='kO'>Область</label><select id='kO'>${Object.keys(KG.d).map(function(o){return `<option>${o}</option>`}).join('')}</select><label for='kR'>Район и станция</label><select id='kR'></select><div id='kRes'></div><p class=note>Окончательный прогноз на весну ${KG.y} года: <a href='${KG.u}' target=_blank rel=noopener>документ Казгидромета</a>. Прогноз на следующий год выходит весной, до этого данные служат ориентиром прошлого сезона. Для Атырауской, Мангистауской, Кызылординской, Туркестанской и Жамбылской областей таблицы по районам в документе нет.</p>`;
+$('kO').onchange=function(){kgO();kgSave()};$('kR').onchange=function(){kgR();kgSave()};
+var k0=null;try{k0=JSON.parse(localStorage.getItem(FK('agro_kg_v1'))||'null')}catch(e){}
+if(k0&&KG.d[k0[0]])$('kO').value=k0[0];kgO();if(k0&&$('kO').value==k0[0]){$('kR').value=k0[1];kgR()}
+/* ===== Модуль правил: культуры, история полей, проверки с источниками ===== */
+/* Справочник культур. ret — минимальный срок возврата на то же поле, лет (ориентир из рекомендаций по севооборотам) */
+var CROPS=[
+ {k:'озимая пшеница',re:/озим.*пшениц|пшениц.*озим/,g:'зерновые'},
+ {k:'яровая пшеница',re:/пшениц/,g:'зерновые'},
+ {k:'ячмень',re:/ячмен/,g:'зерновые'},
+ {k:'овёс',re:/ов[её]с/,g:'зерновые'},
+ {k:'рис',re:/(^|[^а-яё])рис([^а-яё]|$)/,g:'зерновые'},
+ {k:'кукуруза',re:/кукуруз/,g:'пропашные'},
+ {k:'подсолнечник',re:/подсолн/,g:'масличные',ret:7,dz:'заразиха, белая и серая гниль'},
+ {k:'рапс',re:/рапс|сурепиц|горчиц/,g:'масличные',ret:4,dz:'склеротиниоз, вредители крестоцветных'},
+ {k:'лён масличный',re:/л[её]н|льн/,g:'масличные',ret:5,dz:'фузариоз, почвоутомление'},
+ {k:'горох',re:/горох|нут|чечевиц/,g:'бобовые',ret:4,dz:'корневые гнили, гороховая зерновка'},
+ {k:'соя',re:/(^|[^а-яё])со[яиюей]([^а-яё]|$)/,g:'бобовые',ret:3,dz:'склеротиниоз, корневые гнили'},
+ {k:'картофель',re:/картоф/,g:'пропашные',ret:3,dz:'фитофтороз, парша, нематоды'},
+ {k:'сахарная свёкла',re:/св[её]кл/,g:'пропашные',ret:3,dz:'свекловичная нематода, корнеед'},
+ {k:'томаты и овощи',re:/томат|овощ|перец|баклажан/,g:'пропашные',ret:3,dz:'фитофтороз и другие общие с картофелем болезни'},
+ {k:'хлопчатник',re:/хлоп/,g:'пропашные'},
+ {k:'многолетние травы',re:/люцерн|многолетн|эспарцет|донник|житняк|кострец|трав/,g:'травы',per:1},
+ {k:'пар',re:/(^|[^а-яё])пар([^а-яё]|$)/,g:'пар'}];
+/* Родственные по болезням культуры: подряд на одном поле нежелательны */
+var KIN=[[['подсолнечник','рапс','соя'],'склеротиниоз (белая гниль)'],[['картофель','томаты и овощи'],'фитофтороз и общие вредители паслёновых']];
+function cropOf(n){var s=String(n||'').toLowerCase().trim();for(var i=0;i<CROPS.length;i++)if(CROPS[i].re.test(s))return CROPS[i];return{k:s,g:'другое'}}
+/* Год урожая: озимые, посеянные осенью, относятся к урожаю следующего года */
+function cropYear(e){var y=+String(e.d).slice(0,4),m=+String(e.d).slice(5,7);return e.cr&&/озим/i.test(e.cr)&&m>=8?y+1:y}
+/* История полей: поле → год урожая → культуры (по севу, без сева — по уборке) */
+function hist(D){var H={};
+ D.forEach(function(e){if(!e.cr||!e.d)return;var c=cropOf(e.cr),sow=e.o=='Сев или посадка'||c.g=='пар';if(!sow&&e.o!='Уборка')return;var y=cropYear(e),f=H[e.f]=H[e.f]||{},o=f[y]=f[y]||{s:{},h:{}};(sow?o.s:o.h)[c.k]=c});
+ var R={};Object.keys(H).forEach(function(f){R[f]={};Object.keys(H[f]).forEach(function(y){var o=H[f][y],src=Object.keys(o.s).length?o.s:o.h;R[f][y]=Object.keys(src).map(function(k){return src[k]})})});return R}
+function yearsOf(h){return Object.keys(h||{}).map(Number).sort(function(a,b){return a-b})}
+/* Сезоны поля: затраты, сбор и культура года урожая */
+function seasons(D){var g={};D.forEach(function(e){var y=cropYear(e),k=e.f+'|'+y,o=g[k]=g[k]||{f:e.f,y:y,c:0,q:0,cr:'',crs:''};o.c+=+e.c||0;o.q+=+e.y||0;if(e.cr){if(e.o=='Сев или посадка'&&!o.crs)o.crs=e.cr;if(!o.cr)o.cr=e.cr}});
+ return Object.keys(g).map(function(k){var o=g[k];o.crop=o.crs||o.cr;return o}).sort(function(a,b){return a.f<b.f?-1:a.f>b.f?1:b.y-a.y})}
+function nextSeason(){var d=new Date();return d.getMonth()>=7?d.getFullYear()+1:d.getFullYear()}
+
+/* Источники правил и даты проверки */
+var SRCS={
+ past:['Нормы нагрузки на пастбища','Приказ МСХ РК № 3-3/332 в редакции приказа № 394 от 09.12.2024','2026-11','2027-03-01'],
+ weed:['Пороги вредоносности сорняков','Фитосанитарные нормативы, приказ МСХ РК № 237 от 24.07.2020','2026-11','2027-03-01'],
+ fu4:['Отчёт ФУ-4: ежемесячно, март – сентябрь, до 5 числа','Формы фитосанитарного учёта, приказ № 15-02/584 с изменениями','2026-11','2027-03-01'],
+ loc:['Саранча: особо опасные организмы, борьба за счёт бюджета','Перечень особо опасных вредных организмов, МСХ РК; бюллетени ФАО','2026-11','2027-03-01'],
+ quar:['Карантинные объекты','Приказ МСХ РК № 4-4/282 с изменениями','не проверялось','2027-01-15'],
+ kg:['Сроки сева яровых зерновых по районам','Казгидромет, окончательный прогноз сроков сева на 2026 год','2026-05','2027-03-15'],
+ rot:['Севооборот: сроки возврата культур, предшественники','Общие рекомендации по севооборотам (учебники земледелия, научные статьи); сверить с НИИ земледелия области','2026-11','2027-02-28'],
+ land:['Мораторий на продажу земли (по плану до 31.12.2026)','Земельный кодекс РК; влияет на советы по аренде и залогу','2026-11','2026-12-31'],
+ wx:['Погода, заморозки, окна опрыскивания, ГТК по архиву','Open-Meteo: модельный прогноз и реанализ по координатам. Бесплатно для некоммерческого использования; для коммерческого запуска нужен платный тариф или данные Казгидромета','2026-11','2027-03-01'],
+ app:['Полнота записей, экономика поля, пороги проверок','Внутренние правила приложения, демонстрационные пороги','—','2027-02-28']};
+function srcLine(id){var r=SRCS[id];if(!r)return'';var due=r[3]<=today();return '<div class=note>Источник: '+esc(r[1])+' · перепроверить '+(due?'<span class=bad>':'')+dmy(r[3])+(due?', пора</span>':'')+'</div>'}
+
+/* Данные хозяйства для проверок (текущего или любого другого из кабинета консультанта) */
+function ctxOf(id){var cur=!id||id==FARMS.cur;return{id:id||FARMS.cur,D:cur?D:lsJ('agro_diary_v1',id,[]),AR:cur?AR:lsJ('agro_fields_v1',id,{}),kg:lsJ('agro_kg_v1',id,null),PR:cur?PR:lsJ('agro_prices_v1',id,{}),TK:cur?TK:lsJ('agro_tasks_v1',id,[])}}
+var PR=lsJ('agro_prices_v1',null,{});if(!PR||typeof PR!='object')PR={};
+function savePR(){try{localStorage.setItem(FK('agro_prices_v1'),JSON.stringify(PR))}catch(e){}}
+
+function runChecks(x){var L=[],D=x.D||[],AR=x.AR||{},H=hist(D),td=today(),add=function(s,t,tx,a,src){L.push({s:s,t:t,x:tx,a:a,src:src})};
+ Object.keys(H).forEach(function(f){var ys=yearsOf(H[f]),last={};
+  /* монокультура: одна культура три года урожая подряд (кроме многолетних трав и пара) */
+  for(var i=0;i+2<ys.length;i++)if(ys[i+1]==ys[i]+1&&ys[i+2]==ys[i]+2){var k1=H[f][ys[i+1]].map(function(c){return c.k}),k2=H[f][ys[i+2]].map(function(c){return c.k});H[f][ys[i]].forEach(function(c){if(!c.per&&c.g!='пар'&&k1.indexOf(c.k)>=0&&k2.indexOf(c.k)>=0)add('r','Монокультура на поле «'+f+'»','«'+c.k+'» три года подряд ('+ys[i]+'–'+ys[i+2]+'): растёт риск болезней, сорняков и истощения почвы.','Рассмотрите пар, бобовые или культуру другой группы (вкладка «Поля», «Что сеять дальше»).','rot')})}
+  /* срок возврата на поле */
+  ys.forEach(function(y){H[f][y].forEach(function(c){if(c.ret&&last[c.k]!=null){var gap=y-last[c.k];if(gap>0&&gap<c.ret)add(gap<=2?'r':'y','Ранний возврат: '+c.k+' на поле «'+f+'»','Культура вернулась через '+gap+' '+(gap==1?'год':gap<5?'года':'лет')+' ('+last[c.k]+' → '+y+'), рекомендуют не раньше чем через '+c.ret+': накапливаются '+c.dz+'.','Следующий раз сейте её на этом поле не раньше '+(y+c.ret)+' года.','rot')}last[c.k]=y})});
+  /* родственные по болезням культуры подряд */
+  ys.forEach(function(y){if(!H[f][y+1])return;KIN.forEach(function(kn){H[f][y].forEach(function(a){H[f][y+1].forEach(function(b){if(a.k!=b.k&&kn[0].indexOf(a.k)>=0&&kn[0].indexOf(b.k)>=0)add('y','Родственные культуры подряд на поле «'+f+'»',a.k+' ('+y+') → '+b.k+' ('+(y+1)+'): общие болезни, '+kn[1]+'.','Разделяйте их культурой другой группы, например зерновыми.','rot')})})})});
+ });
+ /* доля одной культуры в последнем году урожая */
+ var sw=D.filter(function(e){return e.o=='Сев или посадка'&&e.cr}),ly=sw.length?Math.max.apply(null,sw.map(cropYear)):0;
+ if(ly){var S={},T=0,seen={},nF={};sw.filter(function(e){return cropYear(e)==ly&&AR[e.f]}).forEach(function(e){var c=cropOf(e.cr).k,k=e.f+'|'+c;nF[e.f]=1;if(seen[k])return;seen[k]=1;S[c]=(S[c]||0)+AR[e.f];T+=AR[e.f]});
+  if(Object.keys(nF).length>=2)Object.keys(S).forEach(function(c){if(T&&S[c]/T>.6&&c!='пар')add('y','Одна культура занимает большую долю','«'+c+'»: '+Math.round(S[c]/T*100)+' % посевов в '+ly+' году урожая.','Диверсифицируйте: масличные, бобовые, кормовые. Это снижает риск неурожая и ценовой риск.','rot')})}
+ /* окно сева Казгидромета */
+ var p=x.kg&&KG.d[x.kg[0]]&&KG.d[x.kg[0]][x.kg[1]]?KG.d[x.kg[0]][x.kg[1]].split('|'):null;
+ if(p){var w=p[2].split('–').map(function(s){var a=s.split('.');return new Date(KG.y,+a[1]-1,+a[0])});
+  sw.filter(function(e){var c=cropOf(e.cr).k;return(c=='яровая пшеница'||c=='ячмень')&&!/озим/i.test(e.cr)}).forEach(function(e){var t=new Date(KG.y,+e.d.slice(5,7)-1,+e.d.slice(8,10));if(t<w[0]-5*DD||t>+w[1]+10*DD)add('y','Сев вне ориентира Казгидромета','Поле «'+e.f+'», '+dmy(e.d)+': окно по прогнозу '+KG.y+' для района '+p[0]+': '+p[2]+'.','Сверьтесь с прогнозом на текущий год и спелостью почвы.','kg')})}
+ /* полнота записей */
+ D.filter(function(e){return e.o=='Уборка'&&!e.y}).forEach(function(e){add('y','Уборка без количества','Поле «'+e.f+'», '+dmy(e.d)+': не указано, сколько собрано.','Нажмите «Изменить» у записи и добавьте «Собрано, т».','app')});
+ var nf={};D.forEach(function(e){if(!AR[e.f])nf[e.f]=1});var nk=Object.keys(nf);if(nk.length)add('y','Не указана площадь поля','Полей без площади: '+nk.length+' ('+nk.slice(0,3).join(', ')+').','Укажите площадь на вкладке «Поля», тогда посчитаются ₸/га и ц/га.','app');
+ var fm={};D.filter(function(e){return e.o=='Защита растений'}).forEach(function(e){var m=e.d.slice(0,7),mo=+m.slice(5,7),dl=fuDeadline(m);if(mo>=3&&mo<=9&&dl>=td)fm[m]=dl});Object.keys(fm).sort().forEach(function(m){add('y','Отчёт о химических обработках (ФУ-4)','За '+MON[+m.slice(5,7)-1]+' '+m.slice(0,4)+' в дневнике есть обработки. Срок подачи в районную инспекцию: до '+dmy(fm[m])+'.','Сводка по месяцам: вкладка «Дневник», кнопка «Обработки по месяцам».','fu4')});
+ if(D.length>=5&&D.filter(function(e){return!e.c}).length/D.length>.5)add('y','Мало данных о затратах','Больше половины записей без затрат.','Вносите затраты по операциям, иначе не видна рентабельность.','app');
+ /* экономика: сезон в минусе */
+ seasons(D).forEach(function(o){var pr=o.crop&&x.PR?+x.PR[cropOf(o.crop).k]||0:0;if(pr&&o.q&&o.c){var m=o.q*pr-o.c;if(m<0)add('y','Поле «'+o.f+'» в минусе за '+o.y+' год','Выручка около '+fmt(o.q*pr)+' ₸ при затратах '+fmt(o.c)+' ₸: убыток '+fmt(-m)+' ₸.','Сравните урожайность с безубыточной на вкладке «Поля» и разберите статьи затрат.','app')}});
+ return L.sort(function(a,b){return(a.s=='r'?0:1)-(b.s=='r'?0:1)})}
+
+function calcC(){var L=runChecks(ctxOf());
+ $('chkP').innerHTML=''+(D.length?'':'<p>Добавьте записи в дневник: проверка работает по ним.</p>')+(L.length?'<p class=note>Найдено: важных '+L.filter(function(q){return q.s=='r'}).length+', проверить '+L.filter(function(q){return q.s!='r'}).length+'. Отметьте, полезно ли предупреждение: так в пилоте мы проверяем, какие проверки нужны.</p>'+L.slice(0,15).map(function(q){return '<div class=ent><b style=color:var(--'+q.s+')>'+(q.s=='r'?'Важно: ':'Проверить: ')+esc(q.t)+'</b><div>'+esc(q.x)+'</div><div class=meta>'+esc(q.a)+'</div>'+srcLine(q.src)+fbBtns('chk_'+q.t+'|'+q.x)+'</div>'}).join('')+(L.length>15?'<p class=note>Показаны первые 15 из '+L.length+'.</p>':''):(D.length?'<p>Явных проблем по записям не найдено.</p>':''))+'<p class=note>Проверки ориентировочные, пороги условные, они не заменяют агронома. Чтобы проверялись сроки сева яровых зерновых, выберите район в блоке «Прогноз Казгидромета» на вкладке «Риск». Озимые относятся к году урожая и с весенним окном не сравниваются.</p>'}
+
+/* ===== Вкладка «Поля»: севооборот и экономика ===== */
+var PRE={'пар':{'зерновые':3,'масличные':1,'бобовые':1,'пропашные':1,'травы':1,'пар':0},
+'зерновые':{'зерновые':1,'бобовые':3,'масличные':2,'пропашные':2,'травы':1,'пар':2},
+'бобовые':{'зерновые':3,'масличные':1,'бобовые':0,'пропашные':1,'травы':0,'пар':0},
+'масличные':{'зерновые':3,'бобовые':2,'масличные':0,'пропашные':1,'травы':1,'пар':1},
+'пропашные':{'зерновые':2,'бобовые':2,'масличные':1,'пропашные':1,'травы':1,'пар':1},
+'травы':{'зерновые':3,'пропашные':3,'масличные':1,'бобовые':0,'травы':1,'пар':0}};
+var WHY={'пар':'по пару зерновые дают лучший урожай: в пару накоплены влага и азот, меньше сорняков','зерновые':'культура другой группы прерывает накопление болезней и сорняков зерновых','бобовые':'бобовые оставляют азот: хороший предшественник для зерновых','масличные':'после масличных зерновые меньше страдают от корневых гнилей','пропашные':'после пропашных поле чище от сорняков','травы':'пласт многолетних трав оставляет структуру почвы и азот'};
+function advise(h,z){var NY=nextSeason(),ys=yearsOf(h).filter(function(y){return y<NY});if(!ys.length)return null;
+ var ly=ys[ys.length-1],lc=h[ly],lg=lc[0].g,c2=ys.length>1&&ys[ys.length-2]==ly-1&&h[ly-1].some(function(c){return c.g=='зерновые'})&&lg=='зерновые';
+ var cand=[];CFG[z].crops.forEach(function(r){var c=cropOf(r[0]);if(!cand.some(function(q){return q.k==c.k}))cand.push(c)});if(z=='N')cand.push(cropOf('пар'));
+ var ok=[],no=[];cand.forEach(function(c){var lastY=null;ys.forEach(function(y){if(h[y].some(function(q){return q.k==c.k}))lastY=y});
+  if(c.ret&&lastY!=null&&NY-lastY<c.ret){no.push(c.k+' (был в '+lastY+', возврат не раньше '+(lastY+c.ret)+')');return}
+  if(KIN.some(function(kn){return kn[0].indexOf(c.k)>=0&&lc.some(function(q){return q.k!=c.k&&kn[0].indexOf(q.k)>=0})})){no.push(c.k+' (родственна '+lc[0].k+' по болезням)');return}
+  var sc=(PRE[lg]||{})[c.g];if(sc==null)sc=1;if(c2&&c.g=='зерновые')sc=0;if(c2&&(c.g=='пар'||c.g=='бобовые'))sc=3;if(lc.some(function(q){return q.k==c.k})&&!c.per)sc-=2;ok.push({c:c,s:sc})});
+ ok.sort(function(a,b){return b.s-a.s});
+ return{ny:NY,ly:ly,last:lc.map(function(c){return c.k}).join(', '),c2:c2,good:ok.filter(function(q){return q.s>=2}).slice(0,4).map(function(q){return q.c.k}),no:no,why:c2?'зерновые два года подряд: пар или бобовые восстановят влагу, азот и очистят поле':WHY[lg]||''}}
+function renderFields(){renderFieldCards();var H=hist(D),fs=fieldsList(),NY=nextSeason(),yrs=[];for(var y=NY-5;y<NY;y++)yrs.push(y);
+ $('lRot').classList.toggle('hidden',!fs.length);
+ $('lRot').innerHTML='<details><summary>Севооборот по годам</summary><div class=scr><table><tr><th>Поле</th>'+yrs.map(function(y){return'<th>'+y+'</th>'}).join('')+'</tr>'+fs.map(function(f){return'<tr><td>'+esc(f)+'</td>'+yrs.map(function(y){return'<td>'+((H[f]||{})[y]||[]).map(function(c){return esc(c.k)}).join(', ')+'</td>'}).join('')+'</tr>'}).join('')+'</table></div><p class=note>По записям «Сев или посадка», а без них по «Уборке». Озимые относятся к году урожая. Совет «что сеять дальше» и площадь поля на странице поля.</p></details>';
+ renderEco()}
+function renderEco(){
+ var ss=seasons(D).filter(function(o){return o.crop}),ks=[];ss.forEach(function(o){var c=cropOf(o.crop),k=c.k;if(c.g!='пар'&&ks.indexOf(k)<0)ks.push(k)});
+ var row=function(o){var a=AR[o.f]||0,k=cropOf(o.crop).k,pr=+PR[k]||0,yh=a&&o.q?o.q*10/a:0,ch=a?o.c/a:0,rv=a&&pr?o.q*pr/a:0,mg=rv-ch,be=a&&pr&&o.c?o.c/pr*10/a:0;
+  return'<tr><td>'+esc(o.f)+'</td><td>'+o.y+'</td><td>'+esc(k)+'</td><td>'+(yh?num(yh.toFixed(1)):'–')+'</td><td>'+(ch?fmt(ch):'–')+'</td><td>'+(rv?fmt(rv):'–')+'</td><td class="'+(rv&&o.c?(mg<0?'bad':'ok'):'')+'">'+(rv&&o.c?fmt(mg):'–')+'</td><td>'+(be?num(be.toFixed(1)):'–')+'</td></tr>'};
+ $('lEco').innerHTML='<h2>Экономика полей</h2>'+(ks.length?'<p class=note>Укажите цену реализации за тонну: фактическую или ожидаемую. Цены хранятся только у вас.</p><div class=two>'+ks.map(function(k,i){return'<div><label for="pr'+i+'">'+esc(k)+', ₸/т</label><input id="pr'+i+'" class=prc data-k="'+esc(k)+'" type=number min=0 inputmode=decimal value="'+(PR[k]||'')+'"></div>'}).join('')+'</div><div class=scr style="margin-top:10px" id=ecoT></div><p class=note>Безубыточная урожайность: сколько нужно собрать, чтобы покрыть затраты при этой цене. Затраты собираются из всех записей поля за год урожая (осенние работы под озимые идут в следующий год). Субсидии и аренда не учтены, если вы не внесли их как затраты.</p>':'<p>Добавьте в дневник сев с культурой, затраты и уборку с количеством: здесь появятся выручка, прибыль и безубыточная урожайность по полям.</p>');
+ var tbl=function(){if($('ecoT'))$('ecoT').innerHTML='<table><tr><th>Поле</th><th>Год</th><th>Культура</th><th>ц/га</th><th>Затраты ₸/га</th><th>Выручка ₸/га</th><th>Прибыль ₸/га</th><th>Безубыточно, ц/га</th></tr>'+(ss.filter(function(o){return o.q||o.c}).map(row).join('')||'<tr><td colspan=8>Нет сезонов с затратами или сбором.</td></tr>')+'</table>'};tbl();
+ Array.prototype.forEach.call($('lEco').querySelectorAll('.prc'),function(i){i.oninput=function(){var v=+i.value;if(v>0)PR[i.dataset.k]=v;else delete PR[i.dataset.k];savePR();tbl()}})}
+
+$('wxP').innerHTML=`<h2>Погода сезона: осадки и температура</h2><label for='wP'>Осадки за вегетацию, мм (по метеостанции района)</label>${inp('wP','')}<label for='wT'>Сумма активных температур выше +10 °C за тот же период, °C</label>${inp('wT','')}<label for='wH'>Жаркие дни в цветение и налив (выше +30 °C на севере, +35 °C на юге), дней</label>${inp('wH','')}<div id='wRes'></div><div class=row><button class=btn id=wAuto>Заполнить по данным метеосервиса</button></div><p class=note id=wAutoN>Возьмёт осадки и температуры сезона для области хозяйства из архива Open-Meteo.</p>`;
+function wx(){var z=st.z,P=n('wP'),T=n('wT'),g=P&&T?P/(0.1*T):0,ix=g?(g<0.5?0:g<0.8?1:g<1.3?2:3):-1;
+ if(ix>=0&&z=='N'&&$('f_g')){st.v.N.g=ix;$('f_g').value=ix}
+ if($('wH').value!==''){var h=n('wH'),i2=h<=3?0:h<=8?1:2;st.v[z].t=i2;if($('f_t'))$('f_t').value=i2}
+ calc()}
+function wxShow(){var z=st.z,c=CFG[z],mu=c.crops[st.ci[z]][2],P=n('wP'),T=n('wT'),g=P&&T?P/(0.1*T):0,pts=0,mx=0,o=$('wRes');if(!o)return;
+ ['g','t'].forEach(function(id){var f=c.f.filter(function(q){return q.id==id})[0];if(!f)return;var k=W.indexOf(id)>=0?mu:1;pts+=f.o[st.v[z][id]||0][1]*k;mx+=Math.max.apply(null,f.o.map(function(q){return q[1]}))*k});
+ var cl=g?(g<0.5?'сильная засуха':g<0.8?'засушливо':g<1.3?'недостаточное увлажнение':'достаточно или влажно'):'';
+ o.innerHTML=(g?`<p><b>ГТК = ${g.toFixed(2).replace('.',',')}</b>: ${cl}.${z=='N'?' Он подставлен в фактор «Прогноз увлажнения» ниже.':' На юге ГТК справочный: основная вода идёт из полива.'}</p>`:`<p class=note>Введите осадки и сумму температур, и приложение посчитает ГТК.</p>`)+`<p>Вклад осадков и температуры в индекс риска: <b>${f1(pts)} из ${f1(mx)}</b> баллов.</p><p class=note>ГТК равен осадкам за период, делённым на 0,1 от суммы температур выше +10 °C за тот же период. Жара выше порога в цветение и налив снижает урожай. Пороги условные: уточните у агронома.</p>`}
+['wP','wT','wH'].forEach(function(id){$(id).oninput=function(){st.w[id]=$(id).value;wx()}});
+var WD={'Зерновые (пшеница, ячмень)':[['Овсюг',15],['Просо куриное',40],['Щетинник',60],['Марь белая',25],['Гречишка вьюнковая',6],['Щирица запрокинутая',23],['Горчица полевая',12],['Осот полевой',3],['Вьюнок полевой',4],['Бодяк полевой',2],['Пырей ползучий',2],['Комплекс сорняков с овсюгом',10],['Комплекс без овсюга',5],['Комплекс многолетников',2]],
+'Подсолнечник':[['Овсюг',5,8],['Щетинник зелёный',4,5],['Просо куриное',5,8],['Пырей ползучий',2,3],['Горец вьюнковый',2,3],['Марь белая',2,4],['Щирица запрокинутая',1,3],['Бодяк полевой',1],['Вьюнок полевой',2,4],['Молочай лозный',1,2],['Осот полевой',2],['Сурепка',3,4]],
+'Рапс':[['Щирица запрокинутая',2,3],['Полынь обыкновенная',1,2],['Марь белая',4,5],['Бодяк полевой',1],['Вьюнок полевой',2,3],['Просо куриное',5,10],['Осот полевой',1,2]],
+'Лён':[['Просо куриное',8,10],['Щетинники',4,5],['Горец льняной',5,7],['Марь белая',9,18],['Редька дикая',4,6],['Бодяк полевой',1,3],['Осот полевой',2,4],['Сурепка',3,5]],
+'Горох и соя':[['Осот полевой',1,2],['Бодяк щетинистый',1,2],['Вьюнок полевой',2,3],['Пырей ползучий',4,5],['Щетинник зелёный',4,5],['Дурнишник',1,2],['Марь белая',1,3],['Горчица полевая',1,10]],
+'Картофель':[['Марь белая',2,4],['Просо куриное',5,8],['Вьюнок полевой',6,8],['Осот полевой',1,2],['Щирица запрокинутая',2,3],['Редька дикая',3,5]],
+'Сахарная свёкла':[['Горец вьюнковый',2,4],['Марь белая',1,2],['Осот полевой',1,2],['Подмаренник цепкий',5,8],['Просо куриное',2,4],['Редька дикая',3,5],['Щирица запрокинутая',1,2],['Вьюнок полевой',6,8]],
+'Томаты и овощи':[['Горец вьюнковый',3,4],['Вьюнок полевой',2,4],['Осот полевой',1,2],['Щирица запрокинутая',2,3],['Просо куриное',4,5],['Овсюг',3,5],['Паслён чёрный',3,5]],
+'Рис':[['Просо рисовое',8,10],['Просо куриное',8,10],['Рогоз, частуха, сыть',10,20],['Рис сорный',5,10]],
+'Многолетние травы и люцерна':[['Пырей ползучий',4,5],['Гумай',1,2],['Свинорой пальчатый',4,5],['Осот полевой',1,2]],
+'Хлопок и кукуруза (общий комплекс)':[['Комплекс сорняков с овсюгом',10],['Комплекс без овсюга',5],['Комплекс многолетников',2]]};
+var WC=[['Овсюг (однолетний яровой злак)','Конкурирует за влагу и азот, семена осыпаются и остаются в почве на годы. Борьба: севооборот и пар, качественный сев в оптимальные сроки, обработка стерни; селективные граминициды (действующие вещества: клодинафоп-пропаргил, феноксапроп-П-этил, пиноксаден) в фазе кущения культуры и ранних фазах овсюга.'],['Осот полевой и бодяк (корнеотпрысковые многолетники)','Глубокие корни и отпрыски, разрастаются очагами и сильно иссушают почву. Борьба: чистый пар и многократное подрезание корней, глубокая отвальная обработка; гербициды системного действия (2,4-Д, МЦПА, дикамба, клопиралид, сульфонилмочевины) в фазе розетки до начала стеблевания.'],['Вьюнок полевой','Корни уходят глубоко, плети обвивают культуру и мешают уборке. Борьба: как против осота; гербициды против двудольных (дикамба, 2,4-Д, МЦПА), обработка до цветения.'],['Пырей ползучий (корневищный злак)','Корневища быстро отрастают от обрывков. Борьба: подрезание и вынос корневищ при обработке, чистый пар; на стерне и парах глифосат; в посевах селективные граминициды по этикетке.'],['Марь белая и щирица (однолетние двудольные)','Очень плодовиты, всходят волнами, особенно вредны в пропашных. Борьба: боронование всходов, междурядная культивация; гербициды против двудольных (2,4-Д, МЦПА, дикамба, сульфонилмочевины), в пропашных ещё почвенные по этикетке.'],['Просо куриное и щетинники (поздние яровые злаки)','Всходят при прогреве почвы, угнетают пропашные и овощи. Борьба: междурядная обработка, граминициды по этикетке, чистый предшественник.'],['Карантинные сорняки (например, амброзия, повилика, горчак ползучий)','При обнаружении сообщите в районную территориальную инспекцию. Не перевозите заражённую землю и семена. Актуальный перечень карантинных объектов проверьте в приказе МСХ РК № 4-4/282 с изменениями.']];
+$('wdA').innerHTML=`<h2>Оценка засорённости поля</h2><label for='wdC'>Культура</label><select id='wdC'>${Object.keys(WD).map(function(k){return `<option>${k}</option>`}).join('')}</select><label for='wdS'>Преобладающий сорняк</label><select id='wdS'></select><label for='wdN'>Численность, шт на 1 м²</label>${inp('wdN','')}<p class=note>Порог вредоносности взят из фитосанитарных нормативов РК (приказ МСХ РК № 237 от 24.07.2020 к приказу № 15-02/584). Считайте растения на нескольких площадках 1 м² по диагонали поля и берите среднее. Проверьте актуальную редакцию приказа.</p>`;
+function wdFill(){$('wdS').innerHTML=WD[$('wdC').value].map(function(w,i){return `<option value='${i}'>${w[0]}</option>`}).join('');wdCalc()}
+function wdCalc(){var w=WD[$('wdC').value][+$('wdS').value||0],lo=w[1],hi=w[2]||w[1],v=$('wdN').value,out=$('wdR'),th=lo===hi?lo:lo+'–'+hi;
+ if(v===''){out.className='panel result';out.innerHTML=`<p>Порог вредоносности для вашего выбора: <b>${th} шт/м²</b>. Введите численность, и приложение оценит риск.</p>`;return}
+ var q=+v,r=q/lo,k=r<.5?0:r<1?1:2;out.className='panel result '+['','y','r'][k];
+ out.innerHTML=`<p class='cls ${CL[k]}'>${['Ниже порога','Близко к порогу','Выше порога вредоносности'][k]}</p><p>${w[0]}: ${q} шт/м² при пороге ${th}.</p><p>${['Химическая обработка экономически не оправдана. Продолжайте наблюдения и агротехнику.','Близко к порогу: перепроверьте площадки, подготовьте обработку и следите за фазами культуры и сорняка.','Порог превышен: борьба экономически оправдана. Выберите метод по виду сорняка (см. справочник ниже) и проведите её в подходящую фазу.'][k]}</p><p class=note>Риск учтён в факторе «Засорённость» вкладки «Риск» (зона: ${CFG[st.z].name}).</p>${fbBtns('wd_'+k)}`;
+ try{st.v[st.z].x=k;var s=$('f_x');if(s)s.value=k;calc()}catch(e){}}
+$('wdB').innerHTML=`<h2>Как сорняки влияют на почву и урожай</h2><ul><li><b>Влага:</b> сорняки расходуют воду из почвы. На богаре это сильнее всего ударяет по урожаю, особенно в сухие годы.</li><li><b>Питание:</b> сорняки выносят азот, фосфор и калий, культуре остаётся меньше.</li><li><b>Свет и место:</b> затенение снижает кущение и налив.</li><li><b>Семенной банк:</b> семена остаются в почве годами, один пропущенный год даёт засорённость на следующие сезоны.</li><li><b>Фитосанитария:</b> сорняки приюты для вредителей и болезней, осложняют уборку и снижают качество зерна.</li><li><b>Потери (ориентир по одной из российских рекомендаций):</b> овсюг 1–5 шт/м² даёт около 7 % потерь зерна, 5–15 шт около 13 %, 15–50 шт около 23 %, больше 50 шт больше 25 %. В Казахстане цифры зависят от региона и года.</li></ul><h2 style='margin-top:14px'>Основные сорняки и меры борьбы</h2>`+WC.map(function(x){return `<details class=ent><summary><b>${x[0]}</b></summary><p>${x[1]}</p></details>`}).join('')+`<h2 style='margin-top:14px'>Система борьбы</h2><ol><li><b>Профилактика:</b> чистые семена, севооборот и пар, уничтожение сорняков на межах до цветения, очистка техники.</li><li><b>Механика:</b> дискование стерни, предпосевная культивация, боронование всходов, междурядья, подрезание корней.</li><li><b>Химия:</b> подбирайте гербицид по спектру (злаковые и двудольные сорняки требуют разных средств), используйте только средства из Государственного реестра средств защиты растений РК и дозы по этикетке, чередуйте действующие вещества (чтобы не возникала устойчивость), соблюдайте сроки ожидания и безопасного выхода людей, работайте в средствах защиты.</li><li><b>Отчётность:</b> по приказу № 237 хозяйства, применяющие пестициды на своих полях, представляют в районную инспекцию «Отчёт о проведении химических обработок» ежемесячно в сезон до 5 числа следующего месяца. Записывайте обработки в дневнике (операция «Защита растений»).</li></ol><p class=note>Дозы и названия препаратов здесь сознательно не приводятся: выбор и доза — по этикетке и с агрономом. Действующие вещества приведены как ориентир групп.</p>`;
+$('wdC').onchange=wdFill;$('wdS').onchange=wdCalc;$('wdN').oninput=wdCalc;wdFill();
+var PM=null,LOCK={P:'Пастбища',F:'Кормовой баланс',C:'Проверка хозяйства'},PLAN='farm';try{PLAN=localStorage.getItem('agro_plan_v1')||'farm'}catch(e){}
+/* ===== Хозяйства и кабинет консультанта ===== */
+var SCOPED=['agro_diary_v1','agro_fields_v1','agro_tasks_v1','agro_risk_v1','agro_calc_v1','agro_kg_v1','agro_loc_v1','agro_prices_v1'];
+function farmName(id){var f=FARMS.list.filter(function(x){return x.id==id})[0];return f?f.name:''}
+function openFarm(id){FARMS.cur=id;saveFarms();location.reload()}
+function farmStats(id){var x=ctxOf(id),L=runChecks(x),r=L.filter(function(q){return q.s=='r'}).length,ar=0,fs={};Object.keys(x.AR).forEach(function(k){ar+=+x.AR[k]||0});x.D.forEach(function(e){fs[e.f]=1});
+ return{id:id,name:farmName(id),n:x.D.length,fl:Object.keys(fs).length,ar:ar,last:x.D.reduce(function(m,e){return e.d>m?e.d:m},''),od:x.TK.filter(function(t){return!t.done&&t.d<today()}).length,r:r,y:L.length-r,L:L}}
+function renderFarmBar(){var b=$('farmBar');if(FARMS.list.length<2){b.classList.add('hidden');return}b.classList.remove('hidden');b.innerHTML=esc(farmName(FARMS.cur))+' <button class=lnk id=fbGo style="font-size:15px;min-height:0;padding:0 4px">Сменить</button>';$('fbGo').onclick=function(){tab('X');$('mFarm').scrollIntoView()}}
+function renderFarm(){var multi=FARMS.list.length>1,S=FARMS.list.map(function(f){return farmStats(f.id)});
+ $('mFarm').innerHTML='<h2>Хозяйства</h2><label for=fmName>Название текущего хозяйства</label><div style="display:flex;gap:8px"><input id=fmName value="'+esc(farmName(FARMS.cur))+'"><button class=btn id=fmRen>Сохранить</button></div>'+
+ (multi?'<p class=grp>Сводка по хозяйствам</p><div class=scr><table><tr><th>Хозяйство</th><th>Записей</th><th>Поля, га</th><th>Последняя запись</th><th>Просрочено задач</th><th>Предупреждения</th><th></th></tr>'+S.map(function(s){var cur=s.id==FARMS.cur;return'<tr><td>'+(cur?'<b>':'')+esc(s.name)+(cur?'</b> (открыто)':'')+'</td><td>'+s.n+'</td><td>'+s.fl+(s.ar?', '+num(Math.round(s.ar*10)/10):'')+'</td><td>'+(s.last?dmy(s.last):'–')+'</td><td class="'+(s.od?'bad':'')+'">'+s.od+'</td><td>'+(s.r?'<span class=bad>важных '+s.r+'</span>, ':'')+'проверить '+s.y+'</td><td>'+(cur?'':'<button class=sm data-open="'+s.id+'">Открыть</button><button class=sm data-rm="'+s.id+'">Удалить</button>')+'</td></tr>'}).join('')+'</table></div><div class=row><button class=btn id=fmPrint>Сводка по клиентам для печати или PDF</button></div>':'')+
+ '<label for=fmNew>Новое хозяйство</label><div style="display:flex;gap:8px"><input id=fmNew placeholder="Например: КХ «Береке», Костанайская"><button class=btn id=fmAdd>Добавить</button></div><p class=note>Несколько хозяйств в одном приложении нужны агроконсультанту (тариф «Консультант»). У каждого хозяйства свой дневник, поля, план и расчёты. Демо: всё хранится на этом устройстве, общей базы пока нет.</p>';
+ $('fmRen').onclick=function(){var v=$('fmName').value.trim();if(!v)return;FARMS.list.forEach(function(f){if(f.id==FARMS.cur)f.name=v});saveFarms();renderFarmBar();renderFarm();toast('Название сохранено.')};
+ $('fmAdd').onclick=function(){var v=$('fmNew').value.trim();if(!v){$('fmNew').focus();return}if(PLAN!='cons'){planR('Несколько хозяйств входят в тариф «Консультант». Выберите его ниже, чтобы попробовать.');$('planP').scrollIntoView();return}
+  var id='f'+Date.now().toString(36);FARMS.list.push({id:id,name:v});saveFarms();renderFarm();renderFarmBar();toast('Хозяйство «'+v+'» добавлено.','Открыть',function(){openFarm(id)})};
+ Array.prototype.forEach.call($('mFarm').querySelectorAll('[data-open]'),function(b){b.onclick=function(){openFarm(b.dataset.open)}});
+ Array.prototype.forEach.call($('mFarm').querySelectorAll('[data-rm]'),function(b){b.onclick=function(){var id=b.dataset.rm;if(!confirm('Удалить хозяйство «'+farmName(id)+'» и все его записи с этого устройства? Это нельзя отменить.'))return;
+  try{SCOPED.forEach(function(k){localStorage.removeItem(FK(k,id))})}catch(e){}FARMS.list=FARMS.list.filter(function(f){return f.id!=id});saveFarms();renderFarm();renderFarmBar();toast('Хозяйство удалено.')}});
+ if($('fmPrint'))$('fmPrint').onclick=function(){$('printArea').innerHTML='<h1>Сводка по хозяйствам</h1><p>Сформировано '+dmy(today())+'</p><table><tr><th>Хозяйство</th><th>Записей</th><th>Полей</th><th>Площадь, га</th><th>Последняя запись</th><th>Просрочено задач</th><th>Важных</th><th>Проверить</th></tr>'+S.map(function(s){return'<tr><td>'+esc(s.name)+'</td><td>'+s.n+'</td><td>'+s.fl+'</td><td>'+(s.ar?num(Math.round(s.ar*10)/10):'–')+'</td><td>'+(s.last?dmy(s.last):'–')+'</td><td>'+s.od+'</td><td>'+s.r+'</td><td>'+s.y+'</td></tr>'}).join('')+'</table>'+S.map(function(s){return s.L.length?'<h2>'+esc(s.name)+'</h2><ul>'+s.L.slice(0,8).map(function(q){return'<li><b>'+(q.s=='r'?'Важно: ':'Проверить: ')+esc(q.t)+'.</b> '+esc(q.x)+' '+esc(q.a)+'</li>'}).join('')+'</ul>':''}).join('')+'<p>Проверки ориентировочные и не заменяют агронома.</p>';window.print()};
+}
+function planR(msg){var P=[['free','Бесплатный','Риск урожая, сроки сева, справочник и оценка засорённости, оповещения о саранче, план работ, поля и севооборот, дневник до 3 полей с выгрузкой.'],['farm','Хозяйство','Всё из бесплатного, дневник без лимита по полям, пастбища, кормовой баланс, проверка хозяйства. Цена будет определена после интервью.'],['cons','Консультант','Всё из «Хозяйства», несколько хозяйств в одном приложении, сводка по клиентам и её печать.']];
+ $('planP').innerHTML='<h2>Тарифы</h2><p class=note>Демонстрация: оплата не подключена. Выбор тарифа показывает, как приложение будет работать у разных пользователей.</p>'+(msg?'<p class=warn><b>'+msg+'</b></p>':'')+P.map(function(x){var on=PLAN==x[0];return'<div class=ent><b>'+x[1]+(on?' (выбран)':'')+'</b><div>'+x[2]+'</div><div class=row><button class="btn'+(on?' main':'')+'" data-p="'+x[0]+'">Выбрать</button></div></div>'}).join('');
+ Array.prototype.forEach.call($('planP').querySelectorAll('[data-p]'),function(b){b.onclick=function(){PLAN=b.dataset.p;try{localStorage.setItem('agro_plan_v1',PLAN)}catch(e){}planR();toast('Тариф «'+P.filter(function(x){return x[0]==PLAN})[0][1]+'» выбран.')}})}
+
+function calcP(){var A=n('paA'),Y=n('paY'),K=n('paK'),dy=n('paD'),av=A*Y*K/1000,nd=dm()*dy/1000,cd=n('i_c')||11,out=$('pRes');
+ if(!av||!dy){out.className='panel result r';out.innerHTML='<p>Укажите площадь, урожайность, долю использования и период.</p>';return}
+ var ld=nd/av*100,k=ld<=100?0:ld<=130?1:2,cur=dm()/cd,al=av*1000/(cd*dy),ex=Math.max(0,cur-al),ha=Math.max(0,nd*1000/(Y*K)-A);
+ out.className='panel result '+['','y','r'][k];
+ out.innerHTML=`<p class='cls ${CL[k]}'>${['Нагрузка в норме','Перегруз пастбища','Сильный перегруз'][k]} · ${Math.round(ld)} %</p><ul><li>Корма, которые можно использовать: <b>${f1(av)} т</b> сухой массы</li><li>Потребность стада за период: <b>${f1(nd)} т</b></li><li>Допустимо условных голов КРС: <b>${Math.floor(al)}</b>, сейчас в пересчёте ${Math.round(cur)}</li></ul>`+(k?`<p>Чтобы выйти на 100 %: сократите стадо примерно на <b>${Math.ceil(ex)}</b> условных голов КРС или добавьте около <b>${Math.ceil(ha)} га</b> пастбища. Делите пастбище на загоны и меняйте их по очереди, чтобы трава успевала отрасти; подумайте о подкормке.</p>`:`<p>Запас есть. Если трава ниже обычного, снижайте нагрузку раньше срока.</p>`)}
+function calcF(){var sk=FD.reduce(function(s,x){return s+n(x[0])*x[3]},0),nd=dm()*n('fD')/1000*(1+n('fL')/100),cv=nd?sk/nd*100:0,k=cv>=100?0:cv>=85?1:2,gap=Math.max(0,nd-sk),hay=gap/.85,pr=n('fP'),out=$('fRes');
+ if(!nd){out.className='panel result r';out.innerHTML='<p>Укажите стадо и стойловый период.</p>';return}
+ out.className='panel result '+['','y','r'][k];
+ out.innerHTML=`<p class='cls ${CL[k]}'>${['Кормов хватает','Небольшой дефицит','Серьёзный дефицит'][k]} · покрытие ${Math.round(cv)} %</p><ul><li>Запас в пересчёте на сухое вещество: <b>${f1(sk)} т</b></li><li>Потребность с учётом потерь: <b>${f1(nd)} т</b></li>`+(k?`<li>Не хватает: <b>${f1(gap)} т</b> сухого вещества, это около <b>${f1(hay)} т сена</b>`+(pr?`, примерно <b>${Math.round(hay*pr).toLocaleString('ru-RU')} ₸</b> на докупку`:'')+`</li>`:`<li>Запас сверх потребности: <b>${f1(sk-nd)} т</b> сухого вещества</li>`)+`</ul>`}
+var NM=[['Абайская','Сухая степь: песчано-ковыльно-типчаковые',7.5,11,'210–230'],['Абайская','Опустыненная степь: ковыльно-типчаково-полынные',15,24,'210–230'],['Абайская','Полупустыня: серополынно-ковыльно-типчаковые',16,25,'210–240'],['Акмолинская','Умеренно-засушливая степь: красноковыльно-разнотравные',6.5,10,'170–180'],['Акмолинская','Засушливая степь: красноковыльно-типчаково-овсецовые',9,13.5,'170–180'],['Акмолинская','Сухая степь: ковыльные, ковыльно-типчаково-полынные',8.5,13,'170–180'],['Актюбинская','Засушливая степь: красноковыльно-ковылковые',8.5,13,'200–210'],['Актюбинская','Сухая степь: ковыльно-типчаковые',10,15,'200–210'],['Актюбинская','Полупустыня: ковыльно-типчаково-полынные',15,24,'200–210'],['Алматинская','Полупустыня: серополынно-кейреуково-боялычевые',16,25,'210–230'],['Алматинская','Средняя пустыня: эбелеково-серополынно-эфемеровые',10.5,16.5,'210–230'],['Атырауская','Полупустыня: биюргуново-кейреуковые с серополынными',22,31.5,'240–260'],['Атырауская','Средняя пустыня: солянково-полынные',11.5,17.5,'240–260'],['Западно-Казахстанская','Засушливая степь: красноковыльно-овсецово-разнотравные',8.5,13,'180–200'],['Западно-Казахстанская','Сухая степь: ковыльно-типчаково-полынные',9.5,14.5,'180–200'],['Западно-Казахстанская','Полупустыня: серополынно-биюргуново-кокпековые',15.5,24,'190–200'],['Жамбылская','Средняя пустыня: серополынно-кейреуково-боялычевая',11,16.5,'250–270'],['Жамбылская','Предгорья: злаково-полынно-эфемеровые',7.5,11,'210–240'],['Жетісу','Полупустыня: серополынно-кейреуково-боялычевые',16,25,'210–230'],['Жетісу','Средняя пустыня: эбелеково-серополынно-эфемеровые',10.5,16.5,'210–230'],['Карагандинская','Умеренно-сухая степь: красноковыльно-типчаково-овсецовые',9,13,'180–190'],['Карагандинская','Сухая степь: ковылково-типчаково-кустарниковые',9.5,14,'180–190'],['Карагандинская','Полупустыня: кокпеково-полынные и чернополынные',12.5,18.5,'210–240'],['Костанайская','Колочная подзона: злаково-разнотравные с берёзовыми колками',4.5,6.5,'170–180'],['Костанайская','Засушливая степь: ковыльно-разнотравные',6,9,'170–180'],['Костанайская','Умеренно-сухая степь: ковыльно-типчаково-полынные',8.5,13,'170–180'],['Костанайская','Сухая степь: ковыльно-типчаково-полынные',10.5,15.5,'180–200'],['Кызылординская','Пустынная: серополынно-мятликовые',18,25,'230–250'],['Кызылординская','Средняя пустыня: серополынно-эфемерово-кустарниковые',11,16.5,'250–270'],['Мангистауская','Средняя пустыня: серополынно-мятликово-ранговые',12,18,'270–290'],['Павлодарская','Умеренно-засушливая степь: красноковыльно-разнотравно-полынные',5,7.5,'170–180'],['Павлодарская','Засушливая степь: красноковыльно-овсецово-разнотравные',8.5,10.5,'170–180'],['Павлодарская','Сухая степь: типчаково-полынные закустаренные',9.5,14,'170–180'],['Северо-Казахстанская','Колочная степь: разнотравно-злаковые с берёзово-осиновыми колками',4.5,6.5,'160–180'],['Северо-Казахстанская','Красноковыльно-разнотравно-полынные на солонцах',5.5,7.5,'160–180'],['Туркестанская','Средняя пустыня: серополынно-боялычево-кейреуковые',15.5,24,'250–290'],['Туркестанская','Предгорья: полынно-эфемеровые',10,14.5,'200–210'],['Улытауская','Умеренно-сухая степь: красноковыльно-овсецово-разнотравные',12,14.5,'180–190'],['Улытауская','Сухая степь: ковылково-типчаково-кустарниковые',9.5,14,'180–190'],['Восточно-Казахстанская','Сухая степь: песчано-ковыльно-овсяницево-типчаковые',7.5,11,'210–230'],['Восточно-Казахстанская','Полупустыня: серополынно-ковыльно-типчаковые',16,25,'210–240']];
+var OB=NM.map(function(r){return r[0]}).filter(function(x,i,a){return a.indexOf(x)==i});
+$('nIn').innerHTML=`<h2>Норматив нагрузки по приказу МСХ РК</h2><label for='nO'>Область</label><select id='nO'>${OB.map(function(o){return `<option>${o}</option>`}).join('')}</select><label for='nT'>Природная зона и тип пастбищ</label><select id='nT'></select><label for='nS'>Состояние пастбища</label><select id='nS'><option value='0'>Восстановленные</option><option value='1'>Деградированные</option></select><p class='note'>Норма площади на голову взята из приказа № 3-3/332 в редакции приказа № 394 от 9.12.2024. Показана часть типов пастбищ, полный перечень в приказе. Площадь берётся из поля выше, стадо из блока «Стадо». Для овец и коз норма в 5 раз меньше, для лошадей в 1,2 раза больше, чем для КРС.</p>`;
+function fillT(){var o=$('nO').value;$('nT').innerHTML=NM.map(function(r,i){return r[0]==o?`<option value='${i}'>${r[1]}</option>`:''}).join('')}
+function calcN(){var r=NM[+$('nT').value],out=$('nRes');if(!r)return;var b=r[2+(+$('nS').value)],A=n('paA'),need=0,rows='';
+ [['КРС',1,'c'],['Овцы и козы',.2,'s'],['Лошади',1.2,'h']].forEach(function(x){var nm=b*x[1],hd=n('h_'+x[2]);need+=hd*nm;rows+=`<tr><td>${x[0]}</td><td>${f1(nm)}</td><td>${Math.floor(A/nm)}</td><td>${hd}</td></tr>`});
+ var ld=A?need/A*100:0,c=ld<=100?0:ld<=130?1:2;out.className='panel result '+['','y','r'][c];
+ out.innerHTML=`<p class='cls ${CL[c]}'>${['В пределах норматива','Выше норматива','Сильно выше норматива'][c]} · ${Math.round(ld)} %</p><table><tr><th>Вид</th><th>га на голову</th><th>Допустимо голов</th><th>У вас</th></tr>${rows}</table><p class='note'>Пастбищный период по приказу для этого типа: ${r[4]} дней. Допустимо голов считается по каждому виду отдельно, процент для всего стада вместе. Проверьте действующую редакцию приказа.</p>`}
+var ALL='#herd input,#pIn input,#fIn input,#nIn select';
+function upd(){calcP();calcF();calcN();try{var m={};Array.prototype.forEach.call(document.querySelectorAll(ALL),function(e){m[e.id]=e.value});localStorage.setItem(FK('agro_calc_v1'),JSON.stringify(m))}catch(e){}}
+fillT();
+try{var m0=JSON.parse(localStorage.getItem(FK('agro_calc_v1'))||'{}');Object.keys(m0).forEach(function(id){var e=$(id);if(e){e.value=m0[id];if(id=='nO')fillT()}})}catch(e){}
+Array.prototype.forEach.call(document.querySelectorAll(ALL),function(e){e.oninput=e.onchange=upd});
+$('nO').onchange=function(){fillT();upd()};
+/* План работ: свои задачи, сезонные подсказки, экспорт в календарь телефона */
+var TK=[];try{TK=JSON.parse(localStorage.getItem(FK('agro_tasks_v1'))||'[]');if(!Array.isArray(TK))TK=[]}catch(e){TK=[]}
+function saveTK(){try{localStorage.setItem(FK('agro_tasks_v1'),JSON.stringify(TK))}catch(e){toast('Не удалось сохранить план.')}}
+/* [зона N/S/A, месяц и день начала, месяц и день конца, задача, пояснение, операция дневника] */
+var SEAS=[
+['N',11,1,2,28,'Снегозадержание','Снег на богаре это главный запас весенней влаги: оставляйте высокую стерню, при возможности делайте снежные валы.','Обработка почвы'],
+['N',3,1,4,15,'Проверка семян и техники','Сдайте семена на проверку всхожести и чистоты, подготовьте протравливание, сеялки и опрыскиватели.','Другое'],
+['N',4,20,5,15,'Замер запаса продуктивной влаги','Перед севом определите запас влаги в метровом слое: от него зависят норма высева и выбор культуры. Внесите результат в фактор на вкладке «Риск».','Осмотр поля'],
+['N',5,10,6,5,'Сев яровых','Сейте по окну Казгидромета для вашего района и по спелости почвы.','Сев или посадка'],
+['N',5,25,7,15,'Обследование на итальянского пруса','Осматривайте края полей, залежи и пастбища. Найдёте личинок, сообщите в районную инспекцию.','Осмотр поля'],
+['N',6,1,6,30,'Учёт засорённости','В фазе кущения зерновых посчитайте сорняки на площадках 1 м² и сравните с порогом на вкладке «Защита».','Осмотр поля'],
+['N',8,10,9,30,'Уборка и учёт урожая','Записывайте собранные тонны по каждому полю, тогда посчитается урожайность.','Уборка'],
+['N',9,1,10,31,'Почвенные образцы','После уборки отберите образцы на агрохимический анализ (гумус, фосфор, калий), если поле давно не обследовали.','Другое'],
+['S',11,15,2,28,'Промывные поливы','На засолённых полях проводите промывки вне вегетации и проверьте работу дренажа.','Полив'],
+['S',2,1,3,15,'Лимит и график водоподачи','Согласуйте с водопользователями объём и график поливов на сезон, особенно если поле в хвосте канала.','Другое'],
+['S',3,1,4,30,'Обследование на мароккскую саранчу','Отрождение мароккской саранчи на юге идёт ранней весной. Найдёте личинок, сообщите в районную инспекцию.','Осмотр поля'],
+['S',3,20,4,30,'Сев сахарной свёклы и ранних культур','Сейте, как только почва на глубине заделки прогреется до +6…+8 °C.','Сев или посадка'],
+['S',4,10,5,20,'Сев теплолюбивых культур','Хлопчатник, кукуруза, соя и рис: сейте при прогреве почвы до +10…+14 °C.','Сев или посадка'],
+['S',5,1,6,15,'Учёт засорённости','Посчитайте сорняки до смыкания рядков и сравните с порогом на вкладке «Защита».','Осмотр поля'],
+['S',5,1,8,31,'График поливов','Поливайте по фазам и влажности почвы, критические фазы не оставляйте без воды.','Полив'],
+['S',9,1,11,15,'Уборка и учёт урожая','Записывайте собранные тонны по каждому полю.','Уборка'],
+['S',9,15,10,31,'Сев озимой пшеницы','Сроки по рекомендациям опытной станции для вашей области.','Сев или посадка'],
+['A',4,20,5,20,'Начало пастбищного сезона','Разбейте пастбище на загоны и сверьте нагрузку с нормативом на вкладке «Пастбище».','Другое'],
+['A',9,1,10,15,'Кормовой баланс на зиму','Посчитайте запасы и потребность на вкладке «Корма», пока корм можно докупить.','Другое']];
+var HZ=90,DD=864e5;
+function d0(d){return new Date(d.getFullYear(),d.getMonth(),d.getDate())}
+function seasNow(){var t=d0(new Date()),h=new Date(+t+HZ*DD),out=[],y=t.getFullYear();
+ SEAS.forEach(function(s){if(s[0]!='A'&&s[0]!=st.z)return;[y-1,y,y+1].forEach(function(yy){var a=new Date(yy,s[1]-1,s[2]),b=new Date(s[3]<s[1]?yy+1:yy,s[3]-1,s[4]);if(b>=t&&a<=h)out.push({a:a,b:b,t:s[5],x:s[6],o:s[7]})})});
+ for(var m=0;m<=3;m++){var dl=new Date(t.getFullYear(),t.getMonth()+m,5),pm=dl.getMonth();if(dl>=t&&dl<=h&&pm>=3&&pm<=9)out.push({a:new Date(+dl-4*DD),b:dl,t:'Отчёт ФУ-4 за '+MON[pm-1],x:'Если в '+MONG[pm-1].replace(/я$/,'е').replace(/а$/,'е')+' были химические обработки, подайте отчёт в районную инспекцию до 5 '+MONG[pm]+'. Сводка: «Дневник» → «Обработки по месяцам».',o:'Другое'})}
+ try{var k=JSON.parse(localStorage.getItem(FK('agro_kg_v1'))||'null'),p=k&&KG.d[k[0]]&&KG.d[k[0]][k[1]];if(p&&st.z=='N'){p=p.split('|');var w=p[2].split('–').map(function(s){var q=s.split('.');return[+q[1]-1,+q[0]]}),yy=new Date(y,w[1][0],w[1][1])<t?y+1:y;out.push({a:new Date(yy,w[0][0],w[0][1]),b:new Date(yy,w[1][0],w[1][1]),t:'Сев яровых зерновых: '+p[0],x:'Окно по прогнозу Казгидромета на '+KG.y+' год'+(yy>KG.y?': на '+yy+' год это лишь ориентир, весной сверьтесь с новым прогнозом.':'.'),o:'Сев или посадка',kg:1})}}catch(e){}
+ return out.sort(function(a,b){return a.a-b.a})}
+function fd(d){return d.getDate()+' '+MONG[d.getMonth()]}
+function renderCal(){
+ var fs=fieldsList();
+ $('calA').innerHTML=`<h2>Новая задача</h2><div class=two><div><label for=kD>Дата</label><input id=kD type=date value='${today()}'></div><div><label for=kOp>Работа</label><select id=kOp>${OPS.map(function(o){return'<option>'+o+'</option>'}).join('')}</select></div></div><label for=kF>Поле (необязательно)</label><input id=kF list=fields placeholder='Например: Поле 12'><label for=kN>Что сделать</label><input id=kN placeholder='Например: осмотреть всходы, посчитать сорняки'><div class=row><button class='btn main' id=kAdd>Добавить в план</button></div>`;
+ $('kAdd').onclick=function(){var nt=$('kN').value.trim(),o=$('kOp').value;if(!nt&&!$('kF').value.trim()){$('kN').focus();toast('Опишите задачу или выберите поле.');return}TK.push({id:Date.now(),d:$('kD').value||today(),o:o,f:$('kF').value.trim(),n:nt||o,done:0});saveTK();renderCal();toast('Задача добавлена.')};
+ var td=today(),soon=iso(new Date(Date.now()+14*DD)),open=TK.filter(function(x){return!x.done}).sort(function(a,b){return a.d<b.d?-1:1}),done=TK.filter(function(x){return x.done}).sort(function(a,b){return b.done-a.done}).slice(0,10);
+ var grp=[['Просрочено',open.filter(function(x){return x.d<td})],['Ближайшие 14 дней',open.filter(function(x){return x.d>=td&&x.d<=soon})],['Позже',open.filter(function(x){return x.d>soon})]];
+ var row=function(x){return `<div class=ent><b${x.d<td&&!x.done?" style='color:var(--r)'":''}>${dmy(x.d)} · ${esc(x.n)}</b><span class=meta>${esc(x.o)}${x.f?' · '+esc(x.f):''}</span>${x.done?'':`<div><button class=sm data-k=done data-id='${x.id}'>Выполнено</button><button class=sm data-k=del data-id='${x.id}'>Удалить</button></div>`}</div>`};
+ $('calL').innerHTML='<h2>Мой план работ</h2>'+(open.length?grp.map(function(g){return g[1].length?'<p class=grp>'+g[0]+'</p>'+g[1].map(row).join(''):''}).join(''):'<p class=note>Задач нет. Добавьте свою выше или возьмите из сезонных подсказок ниже.</p>')+(done.length?'<details><summary>Выполнено ('+done.length+')</summary>'+done.map(row).join('')+'</details>':'')+`<div class=row><button class=btn id=kIcs>Добавить в календарь телефона (.ics)</button></div><p class=note>Файл .ics открывается календарём телефона, и он сам напомнит о задаче накануне. При отметке «Выполнено» запись попадает в дневник (если указано поле).</p>`;
+ Array.prototype.forEach.call($('calL').querySelectorAll('[data-k]'),function(b){b.onclick=function(){var x=TK.filter(function(q){return String(q.id)==b.dataset.id})[0];if(!x)return;
+  if(b.dataset.k=='del'){TK=TK.filter(function(q){return q!==x});saveTK();renderCal();toast('Задача удалена.','Вернуть',function(){TK.push(x);saveTK();renderCal()});return}
+  x.done=Date.now();var de=null;if(x.f){de={id:Date.now(),f:x.f,d:today(),o:x.o,cr:'',c:0,y:0,p:'',n:x.n};D.push(de);save()}saveTK();renderCal();
+  toast(de?'Готово, запись добавлена в дневник.':'Задача отмечена.','Отменить',function(){x.done=0;if(de){D=D.filter(function(e){return e!==de});save()}saveTK();renderCal()})}});
+ $('kIcs').onclick=function(){var op=TK.filter(function(x){return!x.done});if(!op.length){toast('В плане нет открытых задач.');return}
+  var ie=function(s){return String(s).replace(/\\/g,'\\\\').replace(/[,;]/g,'\\$&').replace(/\n/g,'\\n')},dt=function(s){return s.replace(/-/g,'')},nx=function(s){var a=s.split('-');return iso(new Date(+a[0],+a[1]-1,+a[2]+1)).replace(/-/g,'')},st0=new Date().toISOString().replace(/[-:]/g,'').slice(0,15)+'Z';
+  var L=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Agro-pomoshnik//RU','CALSCALE:GREGORIAN'];op.forEach(function(x){L.push('BEGIN:VEVENT','UID:'+x.id+'@agro-pomoshnik','DTSTAMP:'+st0,'DTSTART;VALUE=DATE:'+dt(x.d),'DTEND;VALUE=DATE:'+nx(x.d),'SUMMARY:'+ie(x.n+(x.f?' ('+x.f+')':'')),'DESCRIPTION:'+ie(x.o),'BEGIN:VALARM','ACTION:DISPLAY','DESCRIPTION:'+ie(x.n),'TRIGGER:-PT15H','END:VALARM','END:VEVENT')});L.push('END:VCALENDAR');
+  download('agro-plan-'+today()+'.ics',L.join('\r\n'),'text/calendar;charset=utf-8')};
+ var S=seasNow(),t=d0(new Date());
+ $('calS').innerHTML=`<h2>Сезонные подсказки на ${HZ} дней</h2><p class=note>Зона: ${CFG[st.z].name} (меняется на вкладке «Риск»). Сроки это общие ориентиры, сверяйте их с погодой и агрономом.</p>`+(S.length?S.map(function(s,i){var now=s.a<=t;return `<div class=ent><b>${esc(s.t)}</b><span class=meta>${now?'сейчас, до '+fd(s.b):fd(s.a)+' – '+fd(s.b)}</span><div>${esc(s.x)}</div><div><button class=sm data-s='${i}'>В мой план</button></div></div>`}).join(''):'<p>На ближайшие недели подсказок нет.</p>')+(st.z=='N'&&!S.some(function(s){return s.kg})?'<p class=note>Выберите район в блоке «Прогноз Казгидромета» на вкладке «Риск», и здесь появится окно сева для него.</p>':'');
+ Array.prototype.forEach.call($('calS').querySelectorAll('[data-s]'),function(b){b.onclick=function(){var s=S[+b.dataset.s],a=s.a<t?t:s.a;TK.push({id:Date.now(),d:iso(a),o:s.o,f:'',n:s.t,done:0});saveTK();renderCal();toast('Добавлено в план на '+dmy(iso(a))+'.')}});
+}
+
+/* Фитосанитарные оповещения: стадная саранча */
+var OBL=['Абайская','Акмолинская','Актюбинская','Алматинская','Атырауская','Восточно-Казахстанская','Жамбылская','Жетісу','Западно-Казахстанская','Карагандинская','Костанайская','Кызылординская','Мангистауская','Павлодарская','Северо-Казахстанская','Туркестанская','Улытауская'];
+var SOUTH=['Алматинская','Жамбылская','Жетісу','Кызылординская','Туркестанская'];
+var LOC=[
+{n:'Мароккская саранча',r:['Туркестанская','Жамбылская'],m:function(){return[3,4,5]},t:'Предгорья и полупустыни юга. Отрождение личинок ранней весной (март – апрель), в мае окрыление и откладка яиц.'},
+{n:'Азиатская перелётная саранча',r:['Кызылординская','Алматинская','Жетісу','Абайская','Восточно-Казахстанская','Карагандинская','Атырауская'],m:function(){return[5,6,7]},t:'Гнездится в тростниковых зарослях по берегам рек и озёр (Сырдарья, Иле, Балхаш, Алаколь и другие). Отрождение в мае – июне.'},
+{n:'Итальянский прус',r:OBL.filter(function(o){return o!='Мангистауская'}),m:function(o){return SOUTH.indexOf(o)>=0?[4,5,6]:[5,6,7]},t:'Самый распространённый вид: залежи, пастбища, края полей. На юге отрождение с конца апреля, в северных и центральных областях в конце мая – июне.'}];
+function renderLoc(){var o=$('lcO')?$('lcO').value:null;try{o=o||localStorage.getItem(FK('agro_loc_v1'))}catch(e){}if(OBL.indexOf(o)<0)o='Костанайская';
+ var mo=new Date().getMonth()+1,sp=LOC.filter(function(l){return l.r.indexOf(o)>=0});
+ $('lcP').innerHTML=`<h2>Фитосанитарные оповещения: саранча</h2><label for=lcO>Область</label><select id=lcO>${OBL.map(function(x){return'<option'+(x==o?' selected':'')+'>'+x+'</option>'}).join('')}</select>`+(sp.length?sp.map(function(l){var m=l.m(o),on=m.indexOf(mo)>=0;return `<div class=ent><b>${l.n}${on?" · <span class=bad>сейчас сезон обследований</span>":''}</b><span class=meta>Месяцы наблюдений: ${m.map(function(q){return MON[q-1]}).join(', ')}</span><div>${l.t}</div></div>`}).join(''):'<p>Стадные виды саранчи для этой области в наших материалах не отмечены, но одиночные очаги возможны.</p>')+`<p><b>Что делать:</b> в сезон осматривайте края полей, залежи, пастбища и межи. Нашли скопления личинок (кулиги) или стаи, сразу сообщите в районную территориальную инспекцию или акимат и запишите осмотр в дневник. Мароккская и азиатская перелётная саранча и итальянский прус относятся к особо опасным вредным организмам: обработки против них организует государство за счёт республиканского бюджета. Не применяйте препараты, которых нет в Государственном реестре.</p><p class=note>Ареалы и сроки обобщены по открытым материалам МСХ РК и бюллетеням ФАО, в отдельные годы они смещаются. Текущую обстановку уточняйте в инспекции.</p>`;
+ $('lcO').onchange=function(){try{localStorage.setItem(FK('agro_loc_v1'),$('lcO').value)}catch(e){}renderLoc()}}
+
+/* Вкладка «Ещё»: пилот, источники, данные */
+
+function med(a){if(!a.length)return 0;var b=a.slice().sort(function(x,y){return x-y}),m=b.length>>1;return b.length%2?b[m]:(b[m-1]+b[m])/2}
+function pilotStats(){var fb=Object.keys(PILOT.fb),u=fb.filter(function(k){return PILOT.fb[k]===1}).length,t=PILOT.t,q=t.filter(function(x){return x<=120}).length;
+ return{n:D.length,f:fieldsList().length,tasks:TK.length,tm:med(t),tc:t.length,fast:t.length?Math.round(q/t.length*100):0,fb:fb.length,useful:fb.length?Math.round(u/fb.length*100):0,nps:PILOT.nps,cm:PILOT.cm}}
+function renderMore(){
+ var s=pilotStats(),td=today();
+ $('mPilot').innerHTML=`<h2>Пилот: ваш отзыв</h2><p class=note>Эти цифры остаются на телефоне. Отправить их команде можно только вручную, кнопкой ниже.</p><table><tr><td>Записей в дневнике</td><td><b>${s.n}</b> (полей: ${s.f})</td></tr><tr><td>Время на запись, медиана</td><td><b>${s.tc?Math.round(s.tm)+' с':'–'}</b>${s.tc?' · до 2 минут: '+s.fast+' %':''}</td></tr><tr><td>Оценено предупреждений</td><td><b>${s.fb}</b>${s.fb?' · полезных: '+s.useful+' %':''}</td></tr><tr><td>Задач в плане</td><td><b>${s.tasks}</b></td></tr></table>
+ <label>Порекомендуете ли вы приложение коллеге? 0 – точно нет, 10 – точно да</label><div>${[0,1,2,3,4,5,6,7,8,9,10].map(function(i){return `<button class=sm data-n='${i}' aria-pressed='${s.nps===i}'>${i}</button>`}).join('')}</div>
+ <label for=pCm>Что непонятно, лишнее или не хватает?</label><textarea id=pCm>${esc(s.cm)}</textarea>
+ <div class=row><button class=btn id=pCopy>Скопировать отзыв для команды</button></div><textarea id=pOut class=hidden readonly rows=7 aria-label='Текст отзыва'></textarea>`;
+ Array.prototype.forEach.call($('mPilot').querySelectorAll('[data-n]'),function(b){b.onclick=function(){PILOT.nps=+b.dataset.n;savePilot();renderMore()}});
+ $('pCm').oninput=function(){PILOT.cm=$('pCm').value;savePilot()};
+ $('pCopy').onclick=function(){var x=pilotStats(),txt=['Отзыв по пилоту «Агро-помощник», '+dmy(today()),'Зона: '+CFG[st.z].name,'Записей: '+x.n+', полей: '+x.f,'Медиана времени записи: '+(x.tc?Math.round(x.tm)+' с, до 2 минут: '+x.fast+' % ('+x.tc+' замеров)':'нет замеров'),'Оценено предупреждений: '+x.fb+(x.fb?', полезных: '+x.useful+' %':''),'Задач в плане: '+x.tasks,'Хозяйств в приложении: '+FARMS.list.length+', тариф: '+PLAN,'Версия: '+APPV,'Порекомендует коллеге (0–10): '+(x.nps==null?'не ответил':x.nps),'Комментарий: '+(x.cm||'—')].join('\n');$('pOut').value=txt;$('pOut').classList.remove('hidden');$('pOut').select();try{navigator.clipboard.writeText(txt).then(function(){toast('Отзыв скопирован. Отправьте его команде в мессенджере.')},function(){})}catch(e){}};
+ $('mSrc').innerHTML=`<h2>Источники правил и даты проверки</h2><p class=note>Правила меняются, поэтому у каждого есть дата следующей проверки. Красным отмечено то, что пора перепроверить.</p><div class=scr><table><tr><th>Правило</th><th>Источник</th><th>Проверено</th><th>Перепроверить</th></tr>${Object.keys(SRCS).map(function(id){var r=SRCS[id];var due=r[3]<=td,near=!due&&r[3]<=iso(new Date(Date.now()+60*DD));return `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td class='${due?'bad':near?'':'ok'}'>${dmy(r[3])}${due?' · пора':near?' · скоро':''}</td></tr>`}).join('')}</table></div>`;
+ $('mData').innerHTML=`<h2>Ваши данные</h2><p>Все записи хранятся только в этом браузере на этом устройстве и никуда не отправляются. Если очистить браузер или сменить телефон, данные пропадут: регулярно сохраняйте копию.</p><div class=row><button class='btn main' id=bSave>Сохранить копию (файл)</button><button class=btn id=bLoad>Восстановить из файла</button></div><input id=bFile type=file accept='.json,application/json' class=hidden aria-label='Файл копии'><div class=row><button class=btn id=bClr style='border-color:var(--r);color:var(--r)'>Удалить все данные</button></div>
+ <h2 style='margin-top:14px'>Без интернета</h2><p>Если приложение открыто с сайта, добавьте его на главный экран (меню браузера: «Установить приложение» или «На экран Домой»): после первого открытия оно работает без связи. Если у вас файл, сохраните его на телефон и открывайте из «Файлов». Расчёты, дневник, поля и план работают без интернета, он нужен только для ссылок на документы и диктовки.</p><p class=note>Версия ${APPV}. ${navigator.serviceWorker&&navigator.serviceWorker.controller?'Офлайн-режим включён.':'Офлайн-режим включится, когда приложение открыто с сайта.'}</p>`;
+ $('bSave').onclick=function(){var o={app:'agro-pomoshnik',v:1,date:today(),data:{}};try{for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(/^agro_/.test(k))o.data[k]=localStorage.getItem(k)}}catch(e){}download('agro-kopiya-'+today()+'.json',JSON.stringify(o),'application/json')};
+ $('bLoad').onclick=function(){$('bFile').click()};
+ $('bFile').onchange=function(){var f=$('bFile').files[0];if(!f)return;var r=new FileReader();r.onload=function(){try{var o=JSON.parse(r.result);if(!o||o.app!='agro-pomoshnik'||!o.data)throw 0;if(!confirm('Заменить текущие данные данными из копии от '+(o.date?dmy(o.date):'неизвестной даты')+'?'))return;Object.keys(o.data).forEach(function(k){if(/^agro_/.test(k)&&typeof o.data[k]=='string')localStorage.setItem(k,o.data[k])});location.reload()}catch(e){toast('Это не файл копии «Агро-помощника».')}};r.readAsText(f)};
+ $('bClr').onclick=function(){if(!confirm('Удалить все записи дневника, план, расчёты и настройки на этом устройстве? Это нельзя отменить.'))return;try{Object.keys(localStorage).filter(function(k){return /^agro_/.test(k)}).forEach(function(k){localStorage.removeItem(k)})}catch(e){}location.reload()};
+}
+
+/* Язык интерфейса: русский и черновой казахский (меню и основные подписи) */
+var KK={app:'Агро-көмекші',tR:'Тәуекел',tP:'Жайылым',tF:'Азық',tD:'Күнделік',tK:'Жоспар',tL:'Алқаптар',tM:'Тағы',tH:'Шолу',mR:'Өнім тәуекелі',sR:'17 дақыл, маусым ауа райы, себу мерзімдері',shSec:'Бөлімдер',shFarm:'Шаруашылық және деректер',mC:'Шаруашылықты тексеру',sC:'Күнделік жазбалары бойынша қателер мен тәуекелдер',mW:'Өсімдіктерді қорғау',sW:'Арамшөптер, шегіртке, анықтамалық',mP:'Жайылым',sP:'Жүктеме және № 394 бұйрық нормативі',mF:'Қыстық азық',sF:'Құрғақ зат бойынша теңгерім',mFarm:'Шаруашылықтар',mPilot:'Пилот туралы пікір',mData:'Сақтық көшірме және офлайн',mSrc:'Ереже көздері',mPlan:'Тарифтер',tC:'Тексеру',tW:'Қорғау',tT:'Тарифтер',tX:'Тағы',zN:'Солтүстік (тәлімі)',zS:'Оңтүстік (суармалы)',crop:'Дақыл',base:'Алқаптың әдеттегі өнімі, ц/га',dNew:'Жаңа жазба',dField:'Алқап',dDate:'Күні',dOp:'Жұмыс түрі',dCrop:'Дақыл',dArea:'Алқап ауданы, га',dYield:'Жиналды, т (орақ кезінде)',dCost:'Шығын, ₸ (міндетті емес)',dPr:'Препарат және мөлшері (затбелгі бойынша)',dNote:'Ескертпе (фаза, ауа райы, байқағаныңыз)',dLast:'Алдыңғы жазба сияқты',dAdd:'Жазба қосу',dFilter:'Алқапты көрсету',foot:'Прототип. Ұпайлар мен коэффициенттер көрсетуге арналған: оларды агрономдармен және шаруашылық деректерімен нақтылау керек. Қосымша агрономды алмастырмайды және препарат мөлшерін бермейді. Деректер тек осы браузерде сақталады: «Тағы» бөлімінде көшірме жасаңыз.'};
+var LANG='ru';try{LANG=localStorage.getItem('agro_lang_v1')||'ru'}catch(e){}
+function setLang(l){LANG=l=='kk'?'kk':'ru';try{localStorage.setItem('agro_lang_v1',LANG)}catch(e){}document.documentElement.lang=LANG;
+ Array.prototype.forEach.call(document.querySelectorAll('[data-i]'),function(e){if(e.dataset.ru==null)e.dataset.ru=e.textContent;e.textContent=LANG=='kk'&&KK[e.dataset.i]?KK[e.dataset.i]:e.dataset.ru});
+ $('lRu').setAttribute('aria-pressed',LANG=='ru');$('lKk').setAttribute('aria-pressed',LANG=='kk');$('kkNote').classList.toggle('hidden',LANG!='kk');if(typeof CUR!='undefined')setTitle()}
+$('lRu').onclick=function(){setLang('ru')};$('lKk').onclick=function(){setLang('kk')};
+
+/* ===== Регион хозяйства: область и координаты (для погоды, саранчи, зоны) ===== */
+var REG={'Абайская':[50.41,80.23,'Семей'],'Акмолинская':[53.28,69.39,'Кокшетау'],'Актюбинская':[50.28,57.17,'Актобе'],'Алматинская':[43.87,77.07,'Конаев'],'Атырауская':[47.10,51.92,'Атырау'],'Восточно-Казахстанская':[49.95,82.61,'Усть-Каменогорск'],'Жамбылская':[42.90,71.37,'Тараз'],'Жетісу':[45.02,78.37,'Талдыкорган'],'Западно-Казахстанская':[51.23,51.37,'Уральск'],'Карагандинская':[49.80,73.10,'Караганда'],'Костанайская':[53.21,63.62,'Костанай'],'Кызылординская':[44.85,65.51,'Кызылорда'],'Мангистауская':[43.65,51.17,'Актау'],'Павлодарская':[52.29,76.97,'Павлодар'],'Северо-Казахстанская':[54.87,69.15,'Петропавловск'],'Туркестанская':[43.30,68.25,'Туркестан'],'Улытауская':[47.78,67.71,'Жезказган']};
+SCOPED.push('agro_region_v1','agro_wx_v1','agro_wxa_v1');
+var RG=lsJ('agro_region_v1',null,null);if(RG&&!REG[RG.o])RG=null;
+function saveRG(){try{localStorage.setItem(FK('agro_region_v1'),JSON.stringify(RG))}catch(e){}}
+function nearestObl(lat,lon){var b=null,bd=1e9;Object.keys(REG).forEach(function(o){var r=REG[o],d=Math.pow(r[0]-lat,2)+Math.pow((r[1]-lon)*Math.cos(lat*Math.PI/180),2);if(d<bd){bd=d;b=o}});return b}
+function setRegion(o,lat,lon,label){var r=REG[o];RG={o:o,lat:+(lat==null?r[0]:lat).toFixed(3),lon:+(lon==null?r[1]:lon).toFixed(3),label:label||(lat==null?r[2]+' (центр области)':'Моё местоположение')};saveRG();WX=null;try{localStorage.setItem(FK('agro_loc_v1'),o)}catch(e){}}
+function zoneOf(o){return SOUTH.indexOf(o)>=0?'S':'N'}
+function regionPicker(id){return '<label for="'+id+'">Область хозяйства</label><select id="'+id+'"><option value="">Выберите область</option>'+Object.keys(REG).map(function(o){return'<option'+(RG&&RG.o==o?' selected':'')+'>'+o+'</option>'}).join('')+'</select>'+(navigator.geolocation?'<div class=row><button class=btn type=button data-geo="'+id+'">Определить по местоположению</button></div>':'')}
+function bindRegionPicker(id,after){var s=$(id);if(!s)return;s.onchange=function(){if(!s.value)return;setRegion(s.value);after&&after()};
+ var g=document.querySelector('[data-geo="'+id+'"]');if(g)g.onclick=function(){g.textContent='Определяем…';navigator.geolocation.getCurrentPosition(function(p){var o=nearestObl(p.coords.latitude,p.coords.longitude);setRegion(o,p.coords.latitude,p.coords.longitude);toast('Место определено: '+o+' область.');after&&after()},function(){g.textContent='Определить по местоположению';toast('Не удалось получить местоположение. Выберите область из списка.')},{timeout:12000,maximumAge:3600e3})}}
+
+/* ===== Погода: Open-Meteo (бесплатно для некоммерческого использования; для коммерческого нужен платный тариф) ===== */
+var WX=lsJ('agro_wx_v1',null,null),WXA=lsJ('agro_wxa_v1',null,null),WXL=false,WXE='';
+function wxURL(){return'https://api.open-meteo.com/v1/forecast?latitude='+RG.lat+'&longitude='+RG.lon+'&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&hourly=temperature_2m,relative_humidity_2m,precipitation,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_gusts_10m_max&forecast_days=7&wind_speed_unit=ms&timezone=auto'}
+function loadWx(force,cb){if(!RG)return;var fresh=WX&&WX.lat==RG.lat&&WX.lon==RG.lon&&Date.now()-WX.t<2*3600e3;if(fresh&&!force)return;if(WXL)return;
+ WXL=true;WXE='';cb&&cb();
+ fetch(wxURL()).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}).then(function(j){if(!j.daily||!j.hourly)throw new Error('format');WX={t:Date.now(),lat:RG.lat,lon:RG.lon,c:j.current||{},d:j.daily,h:j.hourly};try{localStorage.setItem(FK('agro_wx_v1'),JSON.stringify(WX))}catch(e){}})
+ .catch(function(){WXE=navigator.onLine===false?'Нет интернета: показан последний сохранённый прогноз.':'Сервис погоды не ответил. Попробуйте позже.'})
+ .then(function(){WXL=false;cb&&cb()})}
+var WXI={sun:'<circle cx="12" cy="12" r="4.2" fill="#FF9F0A" stroke="none"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6" stroke="#FF9F0A"/>',
+ psun:'<circle cx="9" cy="9" r="3.4" fill="#FF9F0A" stroke="none"/><path d="M9 2.5v1.6M2.5 9h1.6M4.4 4.4l1.1 1.1M13.6 4.4l-1.1 1.1" stroke="#FF9F0A"/><path d="M8 19h9.5a3.5 3.5 0 0 0 .3-7A5 5 0 0 0 8.4 13 3 3 0 0 0 8 19z" fill="var(--card)"/>',
+ cloud:'<path d="M7 18.5h10.5a4 4 0 0 0 .4-8A5.5 5.5 0 0 0 7.4 12 3.3 3.3 0 0 0 7 18.5z"/>',
+ fog:'<path d="M7 13h10.5a4 4 0 0 0 .2-7.9A5.5 5.5 0 0 0 7.4 7 3 3 0 0 0 7 13z"/><path d="M4 17h16M6 20.5h12"/>',
+ rain:'<path d="M7 14h10.5a4 4 0 0 0 .4-8A5.5 5.5 0 0 0 7.4 7.5 3.3 3.3 0 0 0 7 14z"/><path d="M8.5 17l-1 3M12.5 17l-1 3M16.5 17l-1 3" stroke="#0A84FF"/>',
+ snow:'<path d="M7 14h10.5a4 4 0 0 0 .4-8A5.5 5.5 0 0 0 7.4 7.5 3.3 3.3 0 0 0 7 14z"/><path d="M8 18h.01M12 20h.01M16 18h.01M10 21.5h.01M14 21.5h.01" stroke="#64D2FF" stroke-width="2.6"/>',
+ storm:'<path d="M7 14h10.5a4 4 0 0 0 .4-8A5.5 5.5 0 0 0 7.4 7.5 3.3 3.3 0 0 0 7 14z"/><path d="M12.5 15l-2 3.5h3l-2 3.5" stroke="#FF9F0A"/>'};
+function wmo(c){c=+c;if(c===0)return['sun','Ясно'];if(c<=2)return['psun','Переменная облачность'];if(c==3)return['cloud','Пасмурно'];if(c==45||c==48)return['fog','Туман'];if(c>=51&&c<=57)return['rain','Морось'];if(c>=61&&c<=67)return['rain','Дождь'];if(c>=71&&c<=77)return['snow','Снег'];if(c>=80&&c<=82)return['rain','Ливень'];if(c==85||c==86)return['snow','Снегопад'];if(c>=95)return['storm','Гроза'];return['cloud','Облачно']}
+function wIco(k,sz){return'<svg class=wi viewBox="0 0 24 24" width="'+(sz||26)+'" height="'+(sz||26)+'" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+WXI[k]+'</svg>'}
+var WKD=['Вс','Пн','Вт','Ср','Чт','Пт','Сб'],WDL=['воскресенье','понедельник','вторник','среда','четверг','пятница','суббота'];
+function dOf(s){var a=s.slice(0,10).split('-');return new Date(+a[0],+a[1]-1,+a[2])}
+function dayName(s,i){return i===0?'Сегодня':i===1?'Завтра':WKD[dOf(s).getDay()]}
+function deg(x){return(Math.round(x)>0?'+':Math.round(x)<0?'−':'')+Math.abs(Math.round(x))+'°'}
+function r1(x){return num((Math.round(x*10)/10).toString())}
+function wxAlerts(){if(!WX)return[];var d=WX.d,a=[],m=new Date().getMonth()+1,hot=st.z=='S'?35:30,seen={};
+ d.time.forEach(function(t,i){var mn=d.temperature_2m_min[i],mx=d.temperature_2m_max[i],p=d.precipitation_sum[i]||0,g=d.wind_gusts_10m_max?d.wind_gusts_10m_max[i]:0,day=(i<2?dayName(t,i).toLowerCase():fd(dOf(t)));
+  var add=function(k,s,tt,x){if(seen[k])return;seen[k]=1;a.push({s:s,t:tt,x:x})};
+  if(mn<=0&&m>=4&&m<=10)add('fr','r','Заморозок: '+day,'До '+deg(mn)+'. Отложите сев теплолюбивых культур, укройте рассаду, не поливайте накануне.');
+  if(mx>=hot&&m>=5&&m<=9)add('ht','y','Жара: '+day,'До '+deg(mx)+'. Не опрыскивайте в жару, поливайте утром и вечером.');
+  if(g>=15)add('wd','y','Сильный ветер: '+day,'Порывы до '+Math.round(g)+' м/с. Опрыскивание и внесение удобрений отложите.');
+  if(p>=20)add('rn','y','Сильные осадки: '+day,r1(p)+' мм за сутки. Возможны смыв удобрений и задержка полевых работ.')});
+ return a}
+/* Окна для опрыскивания: ветер до 4 м/с, +8…+25 °C, влажность от 40 %, без осадков 4 часа, светлое время */
+function sprayWin(){if(!WX)return[];var h=WX.h,now=Date.now(),W=[],cur=null;
+ for(var i=0;i<h.time.length;i++){var t=new Date(h.time[i]);if(+t<now-3600e3||+t>now+72*3600e3){cur=null;continue}
+  var hr=t.getHours(),ok=hr>=5&&hr<=21&&h.wind_speed_10m[i]<=4&&h.temperature_2m[i]>=8&&h.temperature_2m[i]<=25&&(h.relative_humidity_2m[i]==null||h.relative_humidity_2m[i]>=40),rain=0;
+  for(var j=i;j<i+4&&j<h.time.length;j++)rain+=h.precipitation[j]||0;if(rain>=0.2)ok=false;
+  if(ok){if(cur&&+t-cur.e==3600e3)cur.e=+t;else{cur={s:+t,e:+t};W.push(cur)}}else cur=null}
+ return W.filter(function(w){return w.e-w.s>=3600e3})}
+function hm(t){var d=new Date(t);return('0'+d.getHours()).slice(-2)+':00'}
+function wxCard(){
+ if(!RG)return'<h2>Погода на полях</h2><p class=meta>Укажите область, и здесь появятся прогноз на неделю, заморозки и окна для опрыскивания.</p>'+regionPicker('hReg');
+ if(!WX)return'<h2>Погода на полях</h2><p class=meta>'+(WXL?'Загружаем прогноз…':(WXE||'Прогноза пока нет.'))+'</p>'+(WXL?'':'<div class=row><button class=btn id=wxRe>Загрузить прогноз</button></div>')+'<p class=note>'+esc(RG.label)+', '+RG.o+' область.</p>';
+ var d=WX.d,c=WX.c||{},w=wmo(c.weather_code!=null?c.weather_code:d.weather_code[0]),lo=Math.min.apply(null,d.temperature_2m_min),hi=Math.max.apply(null,d.temperature_2m_max),rng=Math.max(1,hi-lo);
+ var A=wxAlerts(),S=sprayWin(),mo=new Date().getMonth()+1;
+ var h='<div class=wxh><div><div class=wxt>'+(c.temperature_2m!=null?deg(c.temperature_2m):deg(d.temperature_2m_max[0]))+'</div><div class=meta>'+w[1]+' · '+esc(RG.label)+'</div><div class=meta>Макс. '+deg(d.temperature_2m_max[0])+', мин. '+deg(d.temperature_2m_min[0])+(c.wind_speed_10m!=null?' · ветер '+r1(c.wind_speed_10m)+' м/с':'')+'</div></div>'+wIco(w[0],56)+'</div>';
+ h+=A.map(function(a){return'<div class="al '+a.s+'"><b>'+esc(a.t)+'</b><div>'+esc(a.x)+'</div></div>'}).join('');
+ h+='<p class=grp>Прогноз на 7 дней</p><div class=wk>'+d.time.map(function(t,i){var mn=d.temperature_2m_min[i],mx=d.temperature_2m_max[i],p=d.precipitation_sum[i]||0,pp=d.precipitation_probability_max?d.precipitation_probability_max[i]:null,ww=wmo(d.weather_code[i]);
+  return'<div class=wd tabindex=0 data-tip="'+esc(dayName(t,i)+', '+fd(dOf(t))+': '+ww[1].toLowerCase()+', '+deg(mn)+'…'+deg(mx)+(p?', осадки '+r1(p)+' мм':''))+'"><span class=wdn>'+dayName(t,i)+'</span><span class=wdi>'+wIco(ww[0],24)+'</span><span class=wdp>'+(p>=0.1?r1(p)+' мм':(pp?pp+' %':''))+'</span><span class=wdl>'+deg(mn)+'</span><span class=wdt><span class=wdb style="left:'+((mn-lo)/rng*100).toFixed(1)+'%;width:'+Math.max(4,(mx-mn)/rng*100).toFixed(1)+'%"></span></span><span class=wdh>'+deg(mx)+'</span></div>'}).join('')+'</div>';
+ h+='<p class=grp>Окна для опрыскивания, 3 дня</p>'+(S.length?S.slice(0,4).map(function(s){var a=new Date(s.s);return'<div class=sw><span class=swd>'+WKD[a.getDay()]+', '+fd(a)+'</span><b>'+hm(s.s)+'–'+hm(s.e+3600e3)+'</b></div>'}).join('')+'<p class=note>Ветер до 4 м/с, от +8 до +25 °C, влажность воздуха от 40 %, без осадков 4 часа после обработки. Окончательно сверяйтесь с этикеткой препарата.</p>':'<p class=meta>'+(mo<4||mo>10?'Вне сезона обработок: подходящих окон нет.':'Подходящих окон нет: мешают ветер, осадки или температура.')+'</p>');
+ h+='<p class=note>'+(WXE?esc(WXE)+' ':'')+'Open-Meteo, модельный прогноз · обновлено '+new Date(WX.t).toLocaleString('ru-RU',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})+' · '+esc(RG.o)+' обл. <button class=lnk id=wxRe>Обновить</button> <button class=lnk id=wxPl>Изменить место</button></p>';
+ return h}
+function bindWx(rer){var r=$('wxRe');if(r)r.onclick=function(){loadWx(true,rer)};var p=$('wxPl');if(p)p.onclick=function(){var sv=RG;RG=null;rer();RG=sv;$('hWx').innerHTML='<h2>Погода на полях</h2>'+regionPicker('hReg');bindRegionPicker('hReg',function(){loadWx(true,rer);rer()})};bindRegionPicker('hReg',function(){loadWx(true,rer);rer()})}
+/* ГТК по архиву погоды: сумма осадков и активных температур за дни со средней выше +10 °C, май – август */
+function gtkSeason(){var d=new Date(),y=d.getFullYear(),m=d.getMonth()+1;if(m<5)return{y:y-1,end:(y-1)+'-08-31'};if(m>=9)return{y:y,end:y+'-08-31'};return{y:y,end:iso(new Date(Date.now()-6*DD)),partial:true}}
+function loadArchive(cb){if(!RG){cb(null,'Сначала укажите область хозяйства на вкладке «Сводка».');return}var s=gtkSeason();
+ fetch('https://archive-api.open-meteo.com/v1/archive?latitude='+RG.lat+'&longitude='+RG.lon+'&start_date='+s.y+'-05-01&end_date='+s.end+'&daily=temperature_2m_mean,temperature_2m_max,precipitation_sum&timezone=auto').then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(j){
+  var d=j.daily,P=0,T=0,H=0,hot=st.z=='S'?35:30;d.time.forEach(function(t,i){var tm=d.temperature_2m_mean[i],mo=+t.slice(5,7),dd=+t.slice(8,10);if(tm>10){T+=tm;P+=d.precipitation_sum[i]||0}
+   var inH=st.z=='S'?(mo==6||mo==7):(mo==7||(mo==8&&dd<=10));if(inH&&d.temperature_2m_max[i]>hot)H++});
+  WXA={y:s.y,partial:!!s.partial,P:Math.round(P),T:Math.round(T),H:H,z:st.z,t:Date.now()};try{localStorage.setItem(FK('agro_wxa_v1'),JSON.stringify(WXA))}catch(e){}cb(WXA)}).catch(function(){cb(null,navigator.onLine===false?'Нет интернета.':'Архив погоды не ответил.')})}
+function bindAutoWx(){var b=$('wAuto');if(!b)return;b.onclick=function(){b.disabled=true;b.textContent='Загружаем данные…';loadArchive(function(a,err){b.disabled=false;b.textContent='Заполнить по данным метеосервиса';
+ if(!a){$('wAutoN').textContent=err;return}$('wP').value=a.P;$('wT').value=a.T;$('wH').value=a.H;st.w.wP=String(a.P);st.w.wT=String(a.T);st.w.wH=String(a.H);wx();
+ $('wAutoN').textContent='Сезон '+a.y+(a.partial?' (по '+dmy(gtkSeason().end)+')':'')+', '+RG.o+' обл.: осадки '+a.P+' мм, сумма активных температур '+a.T+' °C, жарких дней '+a.H+' (за '+(st.z=='S'?'июнь – июль':'июль – 10 августа')+'). Источник: Open-Meteo, модельные данные по координатам; у метеостанции района цифры могут отличаться.'})}}
+
+/* ===== Подсказки по наведению и касанию для графиков ===== */
+(function(){var tp=document.createElement('div');tp.id='tip';tp.className='tip hidden';tp.setAttribute('role','tooltip');document.body.appendChild(tp);var cur=null;
+ function show(el){var s=el.getAttribute('data-tip');if(!s)return;cur=el;tp.textContent=s;tp.classList.remove('hidden');var r=el.getBoundingClientRect(),w=tp.offsetWidth,x=Math.min(window.innerWidth-w-8,Math.max(8,r.left+r.width/2-w/2)),y=r.top-tp.offsetHeight-8;if(y<60)y=r.bottom+8;tp.style.left=x+'px';tp.style.top=y+'px'}
+ function hide(){cur=null;tp.classList.add('hidden')}
+ document.addEventListener('pointerover',function(e){var el=e.target.closest&&e.target.closest('[data-tip]');if(el&&e.pointerType=='mouse')show(el)});
+ document.addEventListener('pointerout',function(e){if(e.pointerType=='mouse'&&cur&&!cur.contains(e.relatedTarget))hide()});
+ document.addEventListener('click',function(e){var el=e.target.closest&&e.target.closest('[data-tip]');if(el){if(cur===el)hide();else show(el)}else hide()});
+ document.addEventListener('focusin',function(e){var el=e.target.closest&&e.target.closest('[data-tip]');if(el)show(el)});document.addEventListener('focusout',hide);window.addEventListener('scroll',hide,{passive:true})})();
+
+/* ===== Графики (один оттенок для величины, сине-красная пара для прибыли и убытка) ===== */
+function hbars(rows){var mx=Math.max.apply(null,rows.map(function(r){return r.v}))||1;
+ return'<div class=hb>'+rows.map(function(r){return'<div class=hbr tabindex=0 data-tip="'+esc(r.n+': '+r.s)+'"><span class=hbn>'+esc(r.n)+'</span><span class=hbt><span class=hbf style="width:'+Math.max(1,r.v/mx*100).toFixed(1)+'%"></span></span><span class=hbv>'+esc(r.s)+'</span></div>'}).join('')+'</div>'}
+function dbars(rows){var mx=Math.max.apply(null,rows.map(function(r){return Math.abs(r.v)}))||1,neg=rows.some(function(r){return r.v<0});
+ return'<div class=hb>'+rows.map(function(r){var w=Math.max(1,Math.abs(r.v)/mx*(neg?50:100)),st2=r.v<0?'right:50%;width:'+w+'%;border-radius:4px 0 0 4px':'left:'+(neg?50:0)+'%;width:'+w+'%;border-radius:0 4px 4px 0';
+  return'<div class=hbr tabindex=0 data-tip="'+esc(r.n+': '+r.s)+'"><span class=hbn>'+esc(r.n)+'</span><span class="hbt dv'+(neg?' c':'')+'"><span class="hbf '+(r.v<0?'ng':'ps')+'" style="'+st2+'"></span></span><span class=hbv>'+esc(r.s)+'</span></div>'}).join('')+'</div>'}
+function cols(rows){var mx=Math.max.apply(null,rows.map(function(r){return r.v}))||1,imx=0,il=rows.length-1;rows.forEach(function(r,i){if(r.v>rows[imx].v)imx=i});
+ return'<div class=cols>'+rows.map(function(r,i){return'<div class=col tabindex=0 data-tip="'+esc(r.n+': '+r.s)+'"><span class=cv>'+(i==imx||i==il?esc(r.s):'')+'</span><span class=cb style="height:'+Math.max(2,r.v/mx*100).toFixed(1)+'%"></span><span class=cn>'+esc(r.n)+'</span></div>'}).join('')+'</div>'}
+function fmtCu(n){var a=Math.abs(n),s=n<0?'−':'';if(a>=1e9)return s+num((a/1e9).toFixed(1))+' <span class=u>млрд ₸</span>';if(a>=1e6)return s+num((a/1e6).toFixed(1))+' <span class=u>млн ₸</span>';if(a>=1e4)return s+Math.round(a/1e3)+' <span class=u>тыс. ₸</span>';return s+fmt(a)+' <span class=u>₸</span>'}
+function fmtC(n){var a=Math.abs(n),s=n<0?'−':'';if(a>=1e9)return s+num((a/1e9).toFixed(1))+' млрд';if(a>=1e6)return s+num((a/1e6).toFixed(1))+' млн';if(a>=1e4)return s+Math.round(a/1e3)+' тыс.';return s+fmt(a)}
+function sgn(n){return(n<0?'−':n>0?'+':'')+fmt(Math.abs(n))}
+
+/* ===== Сезонные итоги хозяйства ===== */
+function farmSeason(){var y=new Date().getFullYear(),ys=seasons(D).map(function(o){return o.y}).filter(function(v){return v<=y});return ys.length?Math.max.apply(null,ys):y}
+function cropArea(SY){var H=hist(D),S={};Object.keys(H).forEach(function(f){var cs=(H[f]||{})[SY];if(!cs||!AR[f])return;cs.forEach(function(c){S[c.k]=(S[c.k]||0)+AR[f]/cs.length})});return Object.keys(S).map(function(k){return{k:k,v:S[k]}}).sort(function(a,b){return b.v-a.v})}
+function fieldEcon(SY){return seasons(D).filter(function(o){return o.y==SY&&o.crop}).map(function(o){var k=cropOf(o.crop).k,a=AR[o.f]||0,pr=+PR[k]||0;return{f:o.f,k:k,a:a,q:o.q,c:o.c,pr:pr,rv:o.q*pr,pf:pr&&o.q?o.q*pr-o.c:null,yh:a&&o.q?o.q*10/a:0}})}
+
+/* ===== Экран «Сводка» ===== */
+function renderHome(){
+ var d=new Date();$('pageCap').textContent=WDL[d.getDay()]+', '+d.getDate()+' '+MONG[d.getMonth()];
+ var rer=function(){if(CUR=='H'){$('hWx').innerHTML=wxCard();bindWx(rer)}};
+ $('hWx').innerHTML=wxCard();bindWx(rer);if(RG)loadWx(false,rer);
+ /* внимание */
+ var L=runChecks(ctxOf()),imp=L.filter(function(q){return q.s=='r'}),loc=[];
+ if(RG){var mo=d.getMonth()+1;LOC.forEach(function(l){if(l.r.indexOf(RG.o)>=0&&l.m(RG.o).indexOf(mo)>=0)loc.push(l.n)})}
+ var att=imp.slice(0,3).map(function(q){return'<div class="al r"><b>'+esc(q.t)+'</b><div>'+esc(q.x)+'</div></div>'}).join('')+(loc.length?'<div class="al y"><b>Сезон обследований на саранчу</b><div>'+esc(loc.join(', '))+': осмотрите края полей и залежи, о находках сообщите в инспекцию.</div></div>':'');
+ $('hAtt').innerHTML='<div class=hd><h2>Требует внимания</h2>'+(L.length?'<button class=lnk data-to=C>Все '+L.length+'</button>':'')+'</div>'+(att||(L.length?'<p class=meta>Важных проблем нет. Проверить: '+L.length+'.</p>':'<p class=meta>'+(D.length?'Явных проблем по записям не найдено.':'Добавьте записи в дневник: проверки работают по ним.')+'</p>'));
+ /* задачи */
+ var td=today(),wk=iso(new Date(Date.now()+7*DD)),op=TK.filter(function(t){return!t.done&&t.d<=wk}).sort(function(a,b){return a.d<b.d?-1:1}).slice(0,4);
+ $('hTask').innerHTML='<div class=hd><h2>Задачи на неделю</h2><button class=lnk data-to=K>План</button></div>'+(op.length?op.map(function(t){return'<div class=tk><button class=ck data-done="'+t.id+'" aria-label="Отметить выполненной: '+esc(t.n)+'"></button><div><b>'+esc(t.n)+'</b><div class=meta'+(t.d<td?' style="color:var(--r)"':'')+'>'+(t.d<td?'просрочено, ':'')+dmy(t.d)+(t.f?' · '+esc(t.f):'')+'</div></div></div>'}).join(''):'<p class=meta>На ближайшую неделю задач нет.</p>');
+ Array.prototype.forEach.call($('hTask').querySelectorAll('[data-done]'),function(b){b.onclick=function(){var x=TK.filter(function(q){return String(q.id)==b.dataset.done})[0];if(!x)return;b.classList.add('on');x.done=Date.now();var de=null;if(x.f){de={id:Date.now(),f:x.f,d:today(),o:x.o,cr:'',c:0,y:0,p:'',n:x.n};D.push(de);save()}saveTK();setTimeout(renderHome,250);toast('Готово'+(de?', запись в дневнике.':'.'),'Отменить',function(){x.done=0;if(de){D=D.filter(function(e){return e!==de});save()}saveTK();renderHome()})}});
+ /* показатели сезона */
+ var SY=farmSeason(),E=fieldEcon(SY),CA=cropArea(SY),area=CA.reduce(function(s,r){return s+r.v},0),cost=E.reduce(function(s,o){return s+o.c},0),hasP=E.some(function(o){return o.pf!=null}),rev=E.reduce(function(s,o){return s+(o.pf!=null?o.rv:0)},0),prof=E.reduce(function(s,o){return s+(o.pf!=null?o.pf:0)},0),q=E.reduce(function(s,o){return s+o.q},0);
+ var tiles=[['Посевная площадь',area?fmt(area)+' <span class=u>га</span>':'–',CA.length?CA.length+' '+(CA.length==1?'культура':CA.length<5?'культуры':'культур'):'нет данных о севе'],['Затраты',cost?fmtCu(cost):'–',area&&cost?fmt(cost/area)+' ₸/га':'внесите в дневник']];
+ if(hasP)tiles.push(['Выручка',fmtCu(rev),'по вашим ценам'],['Прибыль','<span class='+(prof<0?'bad':'ok')+'>'+fmtCu(prof)+'</span>',area?sgn(Math.round(prof/area))+' ₸/га':'']);else tiles.push(['Собрано',q?fmt(q)+' <span class=u>т</span>':'–',area&&q?num((q*10/area).toFixed(1))+' ц/га в среднем':'внесите уборку'],['Прибыль','–','укажите цены на вкладке «Поля»']);
+ $('hKpiT').textContent='Сезон '+SY;
+ $('hKpi').innerHTML=tiles.map(function(t){return'<div class=kpi><div class=kl>'+t[0]+'</div><div class=kv>'+t[1]+'</div><div class=ks>'+t[2]+'</div></div>'}).join('');
+ /* структура посевов */
+ $('hCrop').innerHTML='<div class=hd><h2>Структура посевов, '+SY+'</h2><button class=lnk data-to=L>Поля</button></div>'+(CA.length?hbars(CA.slice(0,7).map(function(r){return{n:r.k,v:r.v,s:fmt(r.v)+' га · '+Math.round(r.v/area*100)+' %'}}))+(CA.length>7?'<p class=note>Ещё '+(CA.length-7)+' культур на вкладке «Поля».</p>':''):'<p class=meta>Добавьте сев с культурой и площадь поля: здесь появится структура посевов.</p>');
+ /* прибыль по полям */
+ var PF=E.filter(function(o){return o.pf!=null&&o.a}).map(function(o){return{n:o.f,v:o.pf/o.a,s:sgn(Math.round(o.pf/o.a))+' ₸/га'}}).sort(function(a,b){return b.v-a.v});
+ $('hProf').innerHTML='<div class=hd><h2>Прибыль на гектар, '+SY+'</h2></div>'+(PF.length?dbars(PF)+'<p class=note>'+(PF.some(function(r){return r.v<0})?'Синий: прибыль, красный: убыток. ':'')+'Выручка по вашим ценам минус затраты из дневника. Субсидии и аренда учтены, только если вы внесли их.</p>':'<p class=meta>Укажите цены реализации на вкладке «Поля», внесите затраты и уборку: здесь появится прибыль по каждому полю.</p>');
+ /* риск */
+ var c=CFG[st.z],nm=c.crops[st.ci[st.z]][0],ri=riskIdx();
+ $('hRisk').innerHTML='<button class=rk data-to=R><span class="cls '+CL[ri.k]+'">'+NAMES[ri.k]+'<span class=num>'+ri.idx+'</span></span><span class=meta>Риск урожая: '+esc(nm)+', '+c.name.toLowerCase()+'. Нажмите, чтобы уточнить условия.</span></button>';
+ Array.prototype.forEach.call($('home').querySelectorAll('[data-to]'),function(b){b.onclick=function(){tab(b.dataset.to)}});
+}
+function riskIdx(){var c=CFG[st.z],mu=c.crops[st.ci[st.z]][2],sum=0,max=0;c.f.forEach(function(f){var k=W.indexOf(f.id)>=0?mu:1,i=st.v[st.z][f.id]||0;sum+=f.o[i][1]*k;max+=Math.max.apply(null,f.o.map(function(o){return o[1]}))*k});var idx=Math.round(sum/max*100);return{idx:idx,k:idx<25?0:idx<50?1:2}}
+
+/* ===== Поля: карточки и страница поля ===== */
+var GC={'зерновые':'#FF9500','масличные':'#AF52DE','бобовые':'#34C759','пропашные':'#FF2D55','травы':'#30B0C7','пар':'#8E8E93','другое':'#8E8E93'};
+var FIELD_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7l6-3 6 3 6-3v13l-6 3-6-3-6 3z"/><path d="M9 4v13M15 7v13"/></svg>';
+var CURF='';
+function fieldWarn(f,L){return L.filter(function(q){return q.t.indexOf('«'+f+'»')>=0||q.x.indexOf('«'+f+'»')>=0})}
+function lastCrop(h){var ys=yearsOf(h);return ys.length?{y:ys[ys.length-1],c:h[ys[ys.length-1]]}:null}
+function renderFieldCards(){var H=hist(D),fs=fieldsList(),L=runChecks(ctxOf()),tot=0;fs.forEach(function(f){tot+=AR[f]||0});
+ $('lCards').innerHTML=fs.length?'<p class=sh>'+fs.length+' '+(fs.length==1?'поле':fs.length<5?'поля':'полей')+(tot?' · '+fmt(tot)+' га':'')+'</p><div class=list>'+fs.map(function(f){var lc=lastCrop(H[f]),g=lc?lc.c[0].g:'другое',w=fieldWarn(f,L),r=w.filter(function(q){return q.s=='r'}).length,a=advise(H[f]||{},st.z);
+  return'<button class=cell data-f="'+esc(f)+'"><span class=ic style="--c:'+GC[g]+'">'+FIELD_SVG+'</span><span class=ct>'+esc(f)+'<small>'+(AR[f]?fmt(AR[f])+' га':'площадь не указана')+(lc?' · '+esc(lc.c.map(function(c){return c.k}).join(', '))+' ('+lc.y+')':'')+(a&&a.good.length?'<br>Дальше: '+esc(a.good.slice(0,2).join(' или ')):'')+'</small></span>'+(r?'<span class=badge>'+r+'</span>':'')+'<span class=chev></span></button>'}).join('')+'</div>':'<div class=empty>'+FIELD_SVG+'<b>Полей пока нет</b><p class=meta>Поля появятся, когда вы добавите первую запись в дневник.</p><button class="btn main" data-new=1>Новая запись</button></div>';
+ Array.prototype.forEach.call($('lCards').querySelectorAll('[data-f]'),function(b){b.onclick=function(){CURF=b.dataset.f;tab('G')}});var nb=$('lCards').querySelector('[data-new]');if(nb)nb.onclick=function(){openSheet('new')}}
+function renderFieldPage(){var f=CURF;if(!f||fieldsList().indexOf(f)<0){tab('L');return}
+ var H=hist(D),h=H[f]||{},ys=yearsOf(h),L=runChecks(ctxOf()),w=fieldWarn(f,L),ss=seasons(D).filter(function(o){return o.f==f}),a=AR[f]||0,lc=lastCrop(h);
+ var last=ss.filter(function(o){return o.q})[0],pr=last&&last.crop?+PR[cropOf(last.crop).k]||0:0;
+ $('gTop').innerHTML=[['Площадь','<input class=gar type=number min=0 step=0.1 inputmode=decimal value="'+(a||'')+'" aria-label="Площадь поля, га" placeholder="—"> <span class=u>га</span>',''],['Культура',lc?'<span class=tx>'+esc(lc.c[0].k)+'</span>':'–',lc?'урожай '+lc.y:''],['Урожайность',last&&a?num((last.q*10/a).toFixed(1))+' <span class=u>ц/га</span>':'–',last?'в '+last.y:''],['Прибыль',last&&pr&&a?'<span class='+((last.q*pr-last.c)<0?'bad':'ok')+'>'+sgn(Math.round((last.q*pr-last.c)/a))+'</span>':'–',last&&pr?'₸/га в '+last.y:'укажите цену']].map(function(t){return'<div class=kpi><div class=kl>'+t[0]+'</div><div class="kv'+(/class=tx/.test(t[1])?' t':'')+'">'+t[1]+'</div><div class=ks>'+t[2]+'</div></div>'}).join('');
+ var gi=$('gTop').querySelector('.gar');gi.onchange=function(){var v=+gi.value;if(v>0)AR[f]=v;else delete AR[f];saveAR();renderFieldPage()};
+ var yr=ss.filter(function(o){return o.q&&a}).sort(function(x,y){return x.y-y.y}).map(function(o){var v=o.q*10/a;return{n:String(o.y),v:v,s:num(v.toFixed(1))+' ц/га'}});
+ $('gHist').innerHTML='<h2>История поля</h2>'+(ys.length?'<div class=tl>'+ys.slice().reverse().map(function(y){var s=ss.filter(function(o){return o.y==y})[0];return'<div class=tli><span class=tly>'+y+'</span><span class=tlc>'+h[y].map(function(c){return'<span class=chipc><i style="background:'+GC[c.g]+'"></i>'+esc(c.k)+'</span>'}).join('')+'</span><span class=tlv>'+(s&&s.q&&a?num((s.q*10/a).toFixed(1))+' ц/га':'')+'</span></div>'}).join('')+'</div>':'<p class=meta>Нет записей о посеве или уборке.</p>')+(yr.length>=2?'<p class=grp>Урожайность по годам, ц/га</p>'+cols(yr):'');
+ var ad=advise(h,st.z);
+ $('gAdv').innerHTML='<h2>Что сеять в '+nextSeason()+'</h2>'+(ad?(ad.good.length?'<div><span class=ok>Подходят:</span> '+esc(ad.good.join(', '))+'</div><div class=meta>Почему: '+esc(ad.why)+'.</div>':'')+(ad.no.length?'<div style="margin-top:6px"><span class=bad>Не сейте:</span> '+esc(ad.no.join('; '))+'</div>':''):'<p class=meta>Нужна хотя бы одна запись о посеве.</p>')+srcLine('rot');
+ $('gWarn').innerHTML='<h2>Проверка поля</h2>'+(w.length?w.map(function(q){return'<div class="al '+q.s+'"><b>'+esc(q.t)+'</b><div>'+esc(q.x)+'</div><div class=meta>'+esc(q.a)+'</div></div>'}).join(''):'<p class=meta>Замечаний нет.</p>');
+ var rec=D.filter(function(e){return e.f==f}).sort(function(x,y){return -byDateAsc(x,y)});
+ $('gRec').innerHTML='<div class=hd><h2>Записи</h2><button class=lnk id=gAdd>Добавить</button></div>'+(rec.length?rec.slice(0,12).map(entryRow).join('')+(rec.length>12?'<p class=note>Ещё '+(rec.length-12)+' в дневнике.</p>':''):'<p class=meta>Записей нет.</p>');
+ $('gAdd').onclick=function(){openSheet('new',{f:f})};bindEntryBtns($('gRec'));
+ setTitle()}
+
+/* ===== Дневник: строки с иконками, группы по месяцам ===== */
+var OPI={'Обработка почвы':['#A2845E','<path d="M4 18h16"/><path d="M7 18l2.5-7h5L17 18"/><path d="M10 11V6.5h4V11"/>'],'Сев или посадка':['#34C759','<path d="M12 20v-8"/><path d="M12 12c0-4 3-6.5 7-6.5 0 4-3 6.5-7 6.5z"/><path d="M12 14.5c0-3-2.2-5-5.8-5 0 3 2.2 5 5.8 5z"/>'],'Удобрения':['#AF52DE','<path d="M7.5 4h9l-1 16h-7z"/><path d="M9 9.5h6"/>'],'Полив':['#007AFF','<path d="M12 3.5c3 4.5 6 7.4 6 10.8a6 6 0 0 1-12 0c0-3.4 3-6.3 6-10.8z"/>'],'Защита растений':['#FF3B30','<path d="M12 3l7 3v5c0 5-3 8.5-7 10-4-1.5-7-5-7-10V6z"/>'],'Осмотр поля':['#30B0C7','<circle cx="11" cy="11" r="6"/><path d="M20 20l-4.6-4.6"/>'],'Уборка':['#FF9500','<path d="M3.5 16.5V10h7.5v6.5"/><path d="M11 12.5h4l3 4h2.5"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/>'],'Другое':['#8E8E93','<circle cx="6" cy="12" r="1.4" fill="currentColor"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/><circle cx="18" cy="12" r="1.4" fill="currentColor"/>']};
+function opIcon(o){var x=OPI[o]||OPI['Другое'];return'<span class=oi style="--c:'+x[0]+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+x[1]+'</svg></span>'}
+function entryRow(e){var m=[esc(e.f)];if(e.cr)m.push(esc(e.cr));if(e.y)m.push('собрано '+num(e.y)+' т');if(e.c)m.push(fmt(e.c)+' ₸');
+ return'<div class=er'+(String(e.id)==String(EDIT)?' style="background:var(--fill)"':'')+'>'+opIcon(e.o)+'<div class=eb><div class=et><b>'+esc(e.o)+'</b><span class=ed>'+dmy(e.d)+'</span></div><div class=meta>'+m.join(' · ')+'</div>'+(e.p?'<div class=en>Препарат и норма: '+esc(e.p)+'</div>':'')+(e.n?'<div class=en>'+esc(e.n)+'</div>':'')+'<div class=acts><button class=edt data-ed="'+e.id+'">Изменить</button><button class=del data-id="'+e.id+'">Удалить</button></div></div></div>'}
+function bindEntryBtns(root){
+ Array.prototype.forEach.call(root.querySelectorAll('.del'),function(b){b.onclick=function(){var ix=-1;D.forEach(function(e,i){if(String(e.id)==b.dataset.id)ix=i});if(ix<0)return;if(String(EDIT)==b.dataset.id)endEdit();var rm=D.splice(ix,1)[0];save();refreshData();toast('Запись удалена.','Вернуть',function(){D.push(rm);save();refreshData()})}});
+ Array.prototype.forEach.call(root.querySelectorAll('.edt'),function(b){b.onclick=function(){var e=D.filter(function(q){return String(q.id)==b.dataset.ed})[0];if(!e)return;EDIT=e.id;$('dField').value=e.f;$('dDate').value=e.d;$('dOp').value=e.o;$('dCrop').value=e.cr||'';$('dArea').value=AR[e.f]||'';$('dYield').value=e.y||'';$('dCost').value=e.c||'';$('dPr').value=e.p||'';$('dNote').value=e.n||'';opToggle();$('dAdd').textContent='Сохранить изменения';$('dLast').classList.add('hidden');t0=null;openSheet('edit')}})}
+function renderDiary(){
+ var fs=fieldsList();
+ $('fields').innerHTML=fs.map(function(f){return'<option value="'+esc(f)+'">'}).join('');
+ var cur=$('dFilter').value||'';if(fs.indexOf(cur)<0)cur='';
+ $('dFilter').innerHTML='<option value="">Все поля</option>'+fs.map(function(f){return'<option'+(f==cur?' selected':'')+' value="'+esc(f)+'">'+esc(f)+'</option>'}).join('');
+ var list=dFiltered().sort(function(a,b){return -byDateAsc(a,b)});
+ var tot=list.reduce(function(s,e){return s+(+e.c||0)},0);
+ $('dTotal').textContent='Записей: '+list.length+(tot?' · затраты: '+fmt(tot)+' ₸':'');
+ var rows=seasonSum(list);
+ $('dSum').innerHTML=rows.length?'<details><summary>Итоги по сезонам</summary>'+sumTable(rows)+'<p class="note">Затраты и сбор суммируются внутри года урожая. Площадь берётся последняя указанная для поля.</p></details>':'';
+ var g='',h='';list.forEach(function(e){var m=e.d.slice(0,7);if(m!=g){g=m;h+='<p class=grp>'+MON[+m.slice(5,7)-1]+' '+m.slice(0,4)+'</p>'}h+=entryRow(e)});
+ $('dList').innerHTML=list.length?h:'<div class=empty>'+opIcon('Осмотр поля')+'<b>Записей пока нет</b><p class=meta>Запишите первую операцию: сев, обработку, осмотр или уборку. Это займёт меньше минуты.</p><button class="btn main" data-new=1>Новая запись</button></div>';
+ var nb=$('dList').querySelector('[data-new]');if(nb)nb.onclick=function(){openSheet('new')};
+ bindEntryBtns($('dList'));
+}
+function refreshData(){if(CUR=='D')renderDiary();else if(CUR=='G')renderFieldPage();else if(CUR=='L')renderFields();else if(CUR=='H')renderHome();else if(CUR=='C')calcC()}
+
+/* ===== Лист добавления записи ===== */
+function chipsSync(){Array.prototype.forEach.call($('dChips').querySelectorAll('.chip'),function(b){b.setAttribute('aria-pressed',b.dataset.op==$('dOp').value)})}
+function openSheet(mode,pre){var w=$('sheetW');clearTimeout(closeSheet.h);$('tip').classList.add('hidden');
+ if(mode!='edit'){if(EDIT!=null)endEdit();$('dErr').classList.add('hidden');$('dDate').value=today();if(pre&&pre.f){$('dField').value=pre.f;$('dArea').value=AR[pre.f]||'';var lc=lastCrop(hist(D)[pre.f]);if(lc)$('dCrop').value=lc.c[0].k}t0=Date.now()}
+ $('shT').textContent=mode=='edit'?'Правка записи':'Новая запись';chipsSync();opToggle();
+ w.classList.remove('hidden');w.classList.remove('out');document.body.classList.add('noscroll');$('sheet').scrollTop=0;
+ setTimeout(function(){$('shX').focus()},50)}
+function closeSheet(){var w=$('sheetW');if(w.classList.contains('hidden'))return;w.classList.add('out');document.body.classList.remove('noscroll');clearTimeout(closeSheet.h);closeSheet.h=setTimeout(function(){w.classList.add('hidden');w.classList.remove('out')},200);if(EDIT!=null)endEdit();t0=null}
+
+/* ===== Демо-хозяйство для показа ===== */
+function loadDemo(){var id='demo';
+ if(!FARMS.list.some(function(f){return f.id==id})){
+  var F=[['Поле 1 · Карасу',420,[[2023,'Чистый пар',0,25000],[2024,'Яровая пшеница',16,98000,'05-16'],[2025,'Яровая пшеница',13,102000,'05-18'],[2026,'Ячмень',14,90000,'05-20']]],
+   ['Поле 2 · Озёрное',380,[[2023,'Яровая пшеница',12,95000,'05-17'],[2024,'Рапс',9,120000,'05-14'],[2025,'Яровая пшеница',15,100000,'05-16'],[2026,'Горох',14,95000,'05-12']]],
+   ['Поле 3 · Степное',510,[[2023,'Подсолнечник',11,125000,'05-15'],[2024,'Яровая пшеница',14,98000,'05-17'],[2025,'Яровая пшеница',12,100000,'05-19'],[2026,'Яровая пшеница',10.5,105000,'05-18']]],
+   ['Поле 4 · Балка',300,[[2023,'Лён масличный',8,105000,'05-20'],[2024,'Яровая пшеница',15,98000,'05-16'],[2025,'Подсолнечник',12,128000,'05-14'],[2026,'Яровая пшеница',16,100000,'06-03']]],
+   ['Поле 5 · Луговое',260,[[2024,'Многолетние травы (сено)',18,40000,'05-10'],[2025,'Многолетние травы (сено)',24,22000],[2026,'Многолетние травы (сено)',22,24000]]],
+   ['Поле 6 · Новое',350,[[2024,'Подсолнечник',10,125000,'05-15'],[2025,'Яровая пшеница',14,98000,'05-17'],[2026,'Подсолнечник',11,130000,'05-15']]]];
+  var Dm=[],ARm={},n=1,P=function(f,d,o,cr,c,y,p,nt){Dm.push({id:n++,f:f,d:d,o:o,cr:cr,c:Math.round(c),y:y||0,p:p||'',n:nt||''})};
+  F.forEach(function(x){var f=x[0],a=x[1];ARm[f]=a;x[2].forEach(function(s){var y=s[0],cr=s[1],yl=s[2],ch=s[3]*a,sd=s[4];
+   if(/пар/i.test(cr)){P(f,y+'-05-25','Обработка почвы',cr,ch*.5,0,'','Паровая обработка, первая');P(f,y+'-07-10','Обработка почвы',cr,ch*.5,0,'','Паровая обработка, вторая');return}
+   if(/трав/i.test(cr)){if(sd)P(f,y+'-'+sd,'Сев или посадка',cr,ch*.6,0,'','Подпокровный сев');P(f,y+'-07-08','Уборка',cr,ch*(sd?.4:1),Math.round(yl*a/10),'','Сенокос');return}
+   P(f,y+'-04-28','Обработка почвы',cr,ch*.12,0,'','Ранневесеннее боронование, закрытие влаги');
+   P(f,y+'-'+sd,'Сев или посадка',cr,ch*.38,0,'',/пшениц|ячмен/i.test(cr)?'Норма высева 1,1 млн всхожих зёрен/га, удобрение 60 кг/га':'Сев с удобрением');
+   P(f,y+'-06-14','Защита растений',cr,ch*.2,0,'Гербицид по этикетке, обработано всё поле','Фаза кущения, ветер 2 м/с');
+   P(f,y+'-07-06','Осмотр поля',cr,0,0,'',yl<12?'Посевы угнетены, сорняки, признаки корневой гнили':'Состояние хорошее');
+   P(f,y+'-09-0'+(3+(n%6)),'Уборка',cr,ch*.3,Math.round(yl*a/10),'','Прямое комбайнирование')})});
+  var TKm=[[-6,'Отбор почвенных образцов','Поле 3 · Степное','Другое'],[3,'Снегозадержание','Поле 3 · Степное','Обработка почвы'],[9,'Сверка кормового баланса на зиму','','Другое'],[20,'Договор на семена гороха','','Другое'],[128,'Сдать семена на проверку всхожести','','Другое']].map(function(t,i){return{id:9000+i,d:iso(new Date(Date.now()+t[0]*DD)),n:t[1],f:t[2],o:t[3],done:0}});
+  var put=function(k,v){localStorage.setItem(FK(k,id),JSON.stringify(v))};
+  try{put('agro_diary_v1',Dm);put('agro_fields_v1',ARm);put('agro_tasks_v1',TKm);put('agro_prices_v1',{'яровая пшеница':92000,'ячмень':72000,'горох':115000,'подсолнечник':215000,'рапс':225000,'лён масличный':205000,'многолетние травы':28000});
+   put('agro_region_v1',{o:'Костанайская',lat:52.72,lon:65.48,label:'Карасуский район'});put('agro_kg_v1',['Костанайская',8]);localStorage.setItem(FK('agro_loc_v1',id),'Костанайская');
+   put('agro_risk_v1',{z:'N',ci:{N:0,S:0},v:{N:{w:1,g:1,p:1,s:0,h:1,t:1,x:1},S:{}},b:{N0:14},w:{}})}catch(e){toast('Не удалось сохранить демо-данные.');return}
+  FARMS.list.push({id:id,name:'Демо-хозяйство, Костанайская обл.'});}
+ FARMS.cur=id;saveFarms();try{localStorage.setItem('agro_onb_v1','1');localStorage.setItem('agro_tab_v1','H')}catch(e){}location.reload()}
+
+/* ===== Первый запуск ===== */
+function showOnb(){var o=$('onb');o.classList.remove('hidden');document.body.classList.add('noscroll');$('onb1').classList.remove('hidden');$('onb2').classList.add('hidden');
+ $('onbGo').onclick=function(){$('onb1').classList.add('hidden');$('onb2').classList.remove('hidden');$('onbReg').innerHTML=regionPicker('oReg');$('oName').value=farmName(FARMS.cur)=='Моё хозяйство'?'':farmName(FARMS.cur);
+  bindRegionPicker('oReg',function(){var z=zoneOf(RG.o);$('oZ'+z).click();$('oReg').value=RG.o})};
+ $('onbDemo').onclick=loadDemo;
+ ['N','S'].forEach(function(z){$('oZ'+z).onclick=function(){$('oZN').setAttribute('aria-pressed',z=='N');$('oZS').setAttribute('aria-pressed',z=='S');$('onb2').dataset.z=z}});
+ $('onbDone').onclick=function(){var nm=$('oName').value.trim();if(nm){FARMS.list.forEach(function(f){if(f.id==FARMS.cur)f.name=nm});saveFarms()}
+  var r=$('oReg');if(r&&r.value&&(!RG||RG.o!=r.value))setRegion(r.value);var z=$('onb2').dataset.z;if(z&&z!=st.z)setZone(z);
+  try{localStorage.setItem('agro_onb_v1','1')}catch(e){}o.classList.add('hidden');document.body.classList.remove('noscroll');renderFarmBar();tab('H')}}
+
+/* Вкладки и навигация */
+var TABS={H:'home',R:'risk',P:'past',F:'feed',D:'diary',L:'fld',G:'fieldp',K:'cal',C:'chk',W:'wd',X:'more',M:'menu'};
+var BAR=['H','D','L','K','M'],SUB='RPFCWXG';
+var TITLE={H:'Сводка',R:'Риск урожая',P:'Пастбище',F:'Корма на зиму',D:'Дневник полей',L:'Поля',K:'План работ',C:'Проверка',W:'Защита растений',X:'Хозяйство и данные',M:'Ещё'};
+var TITLE_KK={H:'Шолу',R:'Өнім тәуекелі',P:'Жайылым',F:'Қыстық азық',D:'Алқаптар күнделігі',L:'Алқаптар',K:'Жұмыс жоспары',C:'Тексеру',W:'Өсімдіктерді қорғау',X:'Шаруашылық және деректер',M:'Тағы'};
+var SHORT={H:'Сводка',D:'Дневник',L:'Поля',K:'План',M:'Ещё'},SHORT_KK={H:'Шолу',D:'Күнделік',L:'Алқаптар',K:'Жоспар',M:'Тағы'};
+var CUR='H',ORIG='M';
+function setTitle(){var t=CUR=='G'?CURF:(LANG=='kk'?TITLE_KK:TITLE)[CUR]||'';$('pageT').textContent=t;$('navT').textContent=t;document.title=CUR=='H'?'Агро-помощник':t+' · Агро-помощник';
+ $('backT').textContent=(LANG=='kk'?SHORT_KK:SHORT)[ORIG]||'Назад'}
+function navUpd(){$('nav').classList.toggle('solid',window.scrollY>36)}
+window.addEventListener('scroll',navUpd,{passive:true});
+function tab(k,sec){closeSheet();var toPlan=k=='T';if(toPlan)k='X';if(!TABS[k])k='H';var rd=PLAN=='free'&&'PFC'.indexOf(k)>=0;if(rd){PM='Эта функция («'+LOCK[k]+'») входит в тариф «Хозяйство».';k='X';toPlan=true}else if(!toPlan)PM=null;
+ if(SUB.indexOf(k)>=0){if(BAR.indexOf(CUR)>=0)ORIG=CUR;if(k=='G'&&CUR!='G'&&BAR.indexOf(CUR)<0)ORIG='L'}
+ CUR=k;Object.keys(TABS).forEach(function(x){var el=$(TABS[x]);el.classList.toggle('hidden',x!=k);if(x==k){el.classList.remove('page');void el.offsetWidth;el.classList.add('page')}});
+ var on=SUB.indexOf(k)>=0?ORIG:k;BAR.forEach(function(x){if(x==on)$('t'+x).setAttribute('aria-current','page');else $('t'+x).removeAttribute('aria-current')});
+ $('back').classList.toggle('hidden',SUB.indexOf(k)<0);$('navAdd').classList.toggle('hidden','DLGH'.indexOf(k)<0);
+ $('pageCap').classList.toggle('hidden',k!='H');
+ $('herd').classList.toggle('hidden',k!='P'&&k!='F');
+ setTitle();window.scrollTo(0,0);navUpd();
+ if(k=='H')renderHome();if(k=='D')renderDiary();if(k=='C')calcC();if(k=='K')renderCal();if(k=='W')renderLoc();if(k=='L')renderFields();if(k=='G')renderFieldPage();if(k=='M')renderMenu();if(k=='X'){renderFarm();renderMore();planR(PM);PM=null}
+ var go=toPlan?'planP':sec;if(go)setTimeout(function(){var y=$(go).getBoundingClientRect().top+window.scrollY-60;window.scrollTo(0,Math.max(0,y));navUpd()},0);
+ calcP();calcF();calcN();try{localStorage.setItem('agro_tab_v1',k=='G'?'L':k)}catch(e){}}
+BAR.forEach(function(x){$('t'+x).onclick=function(){if(CUR==x)window.scrollTo({top:0,behavior:'smooth'});else tab(x)}});
+$('back').onclick=function(){tab(ORIG)};
+$('navAdd').onclick=function(){openSheet('new',CUR=='G'?{f:CURF}:null)};
+$('shX').onclick=closeSheet;$('sheetW').addEventListener('click',function(e){if(e.target===$('sheetW'))closeSheet()});
+document.addEventListener('keydown',function(e){if(e.key=='Escape')closeSheet()});
+Array.prototype.forEach.call(document.querySelectorAll('#menu [data-go]'),function(b){b.onclick=function(){if(b.dataset.go=='demo'){loadDemo();return}tab(b.dataset.go,b.dataset.sec)}});
+function renderMenu(){var L=runChecks(ctxOf()),r=L.filter(function(q){return q.s=='r'}).length,bc=$('mbC');bc.textContent=r;bc.classList.toggle('hidden',!r);
+ Array.prototype.forEach.call(document.querySelectorAll('[data-lk]'),function(e){e.classList.toggle('hidden',PLAN!='free')});
+ $('mvFarm').textContent=FARMS.list.length>1?FARMS.list.length+' · '+farmName(FARMS.cur):farmName(FARMS.cur);
+ $('mvPlan').textContent={free:'Бесплатный',farm:'Хозяйство',cons:'Консультант'}[PLAN]||'';
+ var ri=riskIdx();$('mvRisk').textContent=ri.idx;
+ $('mvDemo').textContent=FARMS.cur=='demo'?'открыто':'';
+ var due=Object.keys(SRCS).filter(function(id){return SRCS[id][3]<=today()}).length;$('mvSrc').textContent=due?due+' пора проверить':'';$('mVer').textContent=APPV}
+
+/* Запуск */
+['wP','wT','wH'].forEach(function(id){if(st.w[id]!=null&&st.w[id]!=='')$(id).value=st.w[id]});
+if(!$('nO').value){$('nO').selectedIndex=0;fillT()}if(!$('nT').value)fillT();
+setZone(st.z);
+setLang(LANG);
+renderFarmBar();
+/* Установка на телефон и офлайн-режим: работают, когда страница выложена на сайт вместе с sw.js и manifest.webmanifest */
+if(/^https?:/.test(location.protocol)){var ml=document.createElement('link');ml.rel='manifest';ml.href='manifest.webmanifest';document.head.appendChild(ml);if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(function(){})}
+$('dChips').innerHTML=OPS.map(function(o){return'<button type=button class=chip data-op="'+o+'" aria-pressed=false>'+o+'</button>'}).join('');
+Array.prototype.forEach.call($('dChips').querySelectorAll('.chip'),function(b){b.onclick=function(){$('dOp').value=b.dataset.op;opToggle()}});chipsSync();
+bindAutoWx();
+var tab0='H';try{tab0=localStorage.getItem('agro_tab_v1')||'H'}catch(e){}if(!TABS[tab0]||tab0=='G')tab0='H';
+if(PLAN=='free'&&'PFC'.indexOf(tab0)>=0)tab0='H';
+if(SUB.indexOf(tab0)>=0)CUR='M';
+tab(tab0);
+var onb0=null;try{onb0=localStorage.getItem('agro_onb_v1')}catch(e){}
+if(!onb0&&!D.length&&FARMS.list.length==1)showOnb();
+</script>
+</body>
+</html>
