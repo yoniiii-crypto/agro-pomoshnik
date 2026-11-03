@@ -314,7 +314,7 @@ body.noscroll{overflow:hidden}
 </div>
 <p class="sh">Язык · Тіл</p>
 <div class="list pad"><div class="seg" role="group" aria-label="Язык / Тіл"><button id="lRu" aria-pressed="true">Русский</button><button id="lKk" aria-pressed="false">Қазақша</button></div></div>
-<p class="note" style="margin:12px 16px 0">Агро-помощник · версия <span id="mVer"></span></p>
+<p class="note" style="margin:12px 16px 0">Агро-помощник · версия <span id="mVer"></span> · <button class="lnk" id="mNew" style="font-size:13px;min-height:0;padding:0">Что нового</button></p><div id="mNewT" class="list pad hidden" style="margin-top:8px"></div>
 </div>
 
 <div id="intv" class="hidden"><section class="panel" id="ivH"></section><section class="panel hidden" id="ivF"></section><section class="panel" id="ivL"></section></div>
@@ -383,7 +383,7 @@ body.noscroll{overflow:hidden}
 
 <script>
 /* Хозяйства: у каждого свои данные. Первое хозяйство хранит данные под старыми ключами (совместимость с версией 0.1) */
-var APPV="1.0";
+var APPV="1.1";
 /* ART: страница открыта в просмотре claude.ai (там закрыты внешние сервисы, печать, системные окна) */
 var ART=false;
 var FARMS={list:[{id:"f1",name:"Моё хозяйство"}],cur:"f1"};try{var fz=JSON.parse(localStorage.getItem("agro_farms_v1")||"null");if(fz&&fz.list&&fz.list.length)FARMS=fz}catch(e){}
@@ -662,6 +662,9 @@ function runChecks(x){var L=[],D=x.D||[],AR=x.AR||{},H=hist(D),td=today(),add=fu
  if(p){var w=p[2].split('–').map(function(s){var a=s.split('.');return new Date(KG.y,+a[1]-1,+a[0])});
   sw.filter(function(e){var c=cropOf(e.cr).k;return(c=='яровая пшеница'||c=='ячмень')&&!/озим/i.test(e.cr)}).forEach(function(e){var t=new Date(KG.y,+e.d.slice(5,7)-1,+e.d.slice(8,10));if(t<w[0]-5*DD||t>+w[1]+10*DD)add('y','Сев вне ориентира Казгидромета','Поле «'+e.f+'», '+dmy(e.d)+': окно по прогнозу '+KG.y+' для района '+p[0]+': '+p[2]+'.','Сверьтесь с прогнозом на текущий год и спелостью почвы.','kg')})}
  /* полнота записей */
+ var cy=new Date().getFullYear(),cm=new Date().getMonth()+1;
+ D.filter(function(e){return e.o=='Защита растений'&&!e.p&&+e.d.slice(0,4)>=cy-1}).forEach(function(e){add('y','Обработка без препарата','Поле «'+e.f+'», '+dmy(e.d)+': не указаны препарат и норма.','Нажмите «Изменить» у записи и укажите препарат и норму по этикетке: они нужны для отчёта ФУ-4.','fu4')});
+ Object.keys(H).forEach(function(f){var hv={};D.forEach(function(e){if(e.f==f&&e.o=='Уборка')hv[cropYear(e)]=1});yearsOf(H[f]).forEach(function(y){var c=H[f][y][0];if(!c||c.per||c.g=='пар'||hv[y])return;if(y<cy||(y==cy&&cm>=11))add('y','Нет записи об уборке','Поле «'+f+'», урожай '+y+' ('+c.k+'): есть сев, но нет уборки.','Добавьте «Уборку» с количеством, иначе не посчитаются урожайность и прибыль.','app')})});
  D.filter(function(e){return e.o=='Уборка'&&!e.y}).forEach(function(e){add('y','Уборка без количества','Поле «'+e.f+'», '+dmy(e.d)+': не указано, сколько собрано.','Нажмите «Изменить» у записи и добавьте «Собрано, т».','app')});
  var nf={};D.forEach(function(e){if(!AR[e.f])nf[e.f]=1});var nk=Object.keys(nf);if(nk.length)add('y','Не указана площадь поля','Полей без площади: '+nk.length+' ('+nk.slice(0,3).join(', ')+').','Укажите площадь на вкладке «Поля», тогда посчитаются ₸/га и ц/га.','app');
  var fm={};D.filter(function(e){return e.o=='Защита растений'}).forEach(function(e){var m=e.d.slice(0,7),mo=+m.slice(5,7),dl=fuDeadline(m);if(mo>=3&&mo<=9&&dl>=td)fm[m]=dl});Object.keys(fm).sort().forEach(function(m){add('y','Отчёт о химических обработках (ФУ-4)','За '+MON[+m.slice(5,7)-1]+' '+m.slice(0,4)+' в дневнике есть обработки. Срок подачи в районную инспекцию: до '+dmy(fm[m])+'.','Сводка по месяцам: вкладка «Дневник», кнопка «Обработки по месяцам».','fu4')});
@@ -1266,7 +1269,8 @@ $('navAdd').onclick=function(){openSheet('new',CUR=='G'?{f:CURF}:null)};
 $('shX').onclick=closeSheet;$('sheetW').addEventListener('click',function(e){if(e.target===$('sheetW'))closeSheet()});
 document.addEventListener('keydown',function(e){if(e.key=='Escape'){if(!$('dlg').classList.contains('hidden'))$('dlg').classList.add('hidden');else closeSheet()}});
 Array.prototype.forEach.call(document.querySelectorAll('#menu [data-go]'),function(b){b.onclick=function(){if(b.dataset.go=='demo'){loadDemo();return}if(b.dataset.go=='rep'){report('farm');return}tab(b.dataset.go,b.dataset.sec)}});
-function renderMenu(){var L=runChecks(ctxOf()),r=L.filter(function(q){return q.s=='r'}).length,bc=$('mbC');bc.textContent=r;bc.classList.toggle('hidden',!r);
+var CHANGES=[['1.1','Проверки: обработка без препарата, сев без уборки. Экран «Что нового»'],['1.0','Поиск по дневнику, переименование и объединение полей, справка о субсидиях'],['0.9','Пять зон: север, запад, центр, восток и юг'],['0.8','Интервью и проверка гипотез пилота'],['0.7','Паспорт поля и отчёт хозяйства в PDF'],['0.6','Калькуляторы агронома, обмен хозяйством файлом, казахский шире'],['0.5','Сводка, погода, окна опрыскивания, карточки полей, демо-хозяйство'],['0.4','Дизайн в стиле iOS, светлая и тёмная тема'],['0.3','Поля и севооборот, экономика, несколько хозяйств, офлайн-режим'],['0.2','План работ, саранча, экспорт, источники правил, пилотные метрики']];
+function renderMenu(){var nb=$('mNew');if(nb)nb.onclick=function(){var t=$('mNewT');if(!t.innerHTML)t.innerHTML=CHANGES.map(function(c){return'<div class=tli style="grid-template-columns:44px 1fr"><span class=tly>'+c[0]+'</span><span class=meta>'+esc(c[1])+'</span></div>'}).join('');t.classList.toggle('hidden')};var L=runChecks(ctxOf()),r=L.filter(function(q){return q.s=='r'}).length,bc=$('mbC');bc.textContent=r;bc.classList.toggle('hidden',!r);
  Array.prototype.forEach.call(document.querySelectorAll('[data-lk]'),function(e){e.classList.toggle('hidden',PLAN!='free')});
  $('mvFarm').textContent=FARMS.list.length>1?FARMS.list.length+' · '+farmName(FARMS.cur):farmName(FARMS.cur);
  $('mvPlan').textContent={free:'Бесплатный',farm:'Хозяйство',cons:'Консультант'}[PLAN]||'';
