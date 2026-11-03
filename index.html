@@ -271,6 +271,12 @@ body.noscroll{overflow:hidden}
 .zv{font-size:22px;line-height:28px;font-weight:700;letter-spacing:.35px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .zv .u{font-size:15px;font-weight:600;color:var(--mute)}
 .zsel{display:flex;gap:8px;align-items:flex-end}.zsel>div{flex:1}.zsel select{width:auto}
+.st{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;border-radius:999px;padding:3px 10px;white-space:nowrap}
+.st::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor}
+.st.y{color:var(--g);background:color-mix(in srgb,var(--gF) 14%,var(--card))}.st.n{color:var(--r);background:color-mix(in srgb,var(--rF) 12%,var(--card))}.st.w{color:var(--mute);background:var(--fill)}
+.hy{display:grid;grid-template-columns:1fr auto;gap:4px 10px;align-items:start;padding:10px 0;border-top:.5px solid var(--line)}.hy:first-of-type{border-top:0}
+.hy .meta{grid-column:1/-1}
+.ivq label{color:var(--ink);font-weight:500}
 #printArea{display:none}
 .rep{font:13px/1.45 -apple-system,"Segoe UI",Roboto,Arial,sans-serif;color:#111;max-width:900px;margin:0 auto}.rep h1{font-size:22px;margin:8px 0 4px}.rep h2{font-size:15px;margin:18px 0 6px;color:#2C5E3B}.rep .rh{display:flex;justify-content:space-between;gap:12px;font-size:11px;color:#555;border-bottom:2px solid #2C5E3B;padding-bottom:6px}.rep .rs{color:#444;margin:0 0 8px}.rep table{width:100%;border-collapse:collapse;font-size:12px}.rep th{background:#EEF2EC;text-align:left;font-weight:600}.rep td,.rep th{border-bottom:1px solid #ccc;padding:5px 6px;vertical-align:top}.rep .rk{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}.rep .rk div{border:1px solid #ccc;border-radius:8px;padding:6px 10px;min-width:130px}.rep .rk span{display:block;font-size:11px;color:#555}.rep .rk b{font-size:15px}.rep ul{padding-left:18px}.rep .rf{margin-top:18px;font-size:10px;color:#666}
 @media print{body{background:#fff;color:#000}main,.toast,.nav,.tabbar,.sheetW,.onb,.tip{display:none!important}#printArea{display:block;font:12px/1.4 var(--font);padding:0 8px}#printArea table{font-size:11px}#printArea td,#printArea th{border-bottom:1px solid #999}}
@@ -301,11 +307,16 @@ body.noscroll{overflow:hidden}
  <button class="cell" data-go="X" data-sec="mSrc"><span class="ic" style="--c:#8E8E93"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4M10 12h5M10 16h5"/></svg></span><span class="ct"><span data-i="mSrc">Источники правил</span></span><span class="val" id="mvSrc"></span><span class="chev"></span></button>
  <button class="cell" data-go="X" data-sec="planP"><span class="ic" style="--c:#FF2D55"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12.5" rx="2"/><path d="M3 10.5h18M7 15h3"/></svg></span><span class="ct"><span data-i="mPlan">Тарифы</span></span><span class="val" id="mvPlan"></span><span class="chev"></span></button>
 </div>
+<p class="sh" data-i="shRes">Исследование</p>
+<div class="list">
+ <button class="cell" data-go="I"><span class="ic" style="--c:#5AC8FA"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12.5h5"/></svg></span><span class="ct"><span data-i="mI">Интервью и гипотезы</span><small data-i="sI">Скрипт интервью, итоги и проверка гипотез пилота</small></span><span class="val" id="mvI"></span><span class="chev"></span></button>
+</div>
 <p class="sh">Язык · Тіл</p>
 <div class="list pad"><div class="seg" role="group" aria-label="Язык / Тіл"><button id="lRu" aria-pressed="true">Русский</button><button id="lKk" aria-pressed="false">Қазақша</button></div></div>
 <p class="note" style="margin:12px 16px 0">Агро-помощник · версия <span id="mVer"></span></p>
 </div>
 
+<div id="intv" class="hidden"><section class="panel" id="ivH"></section><section class="panel hidden" id="ivF"></section><section class="panel" id="ivL"></section></div>
 <div id="calcs" class="hidden"><section class="panel" id="zSeed"></section><section class="panel" id="zTank"></section><section class="panel" id="zGrain"></section></div>
 <div id="risk" class="hidden">
   <div class="seg" role="group" aria-label="Зона">
@@ -374,7 +385,7 @@ body.noscroll{overflow:hidden}
 
 <script>
 /* Хозяйства: у каждого свои данные. Первое хозяйство хранит данные под старыми ключами (совместимость с версией 0.1) */
-var APPV="0.7";
+var APPV="0.8";
 /* ART: страница открыта в просмотре claude.ai (там закрыты внешние сервисы, печать, системные окна) */
 var ART=false;
 var FARMS={list:[{id:"f1",name:"Моё хозяйство"}],cur:"f1"};try{var fz=JSON.parse(localStorage.getItem("agro_farms_v1")||"null");if(fz&&fz.list&&fz.list.length)FARMS=fz}catch(e){}
@@ -859,7 +870,7 @@ function renderMore(){
 }
 
 /* Язык интерфейса: русский и черновой казахский (меню и основные подписи) */
-var KK={app:'Агро-көмекші',tR:'Тәуекел',tP:'Жайылым',tF:'Азық',tD:'Күнделік',tK:'Жоспар',tL:'Алқаптар',tM:'Тағы',tH:'Шолу',mRep:'Шаруашылық есебі',sRep:'Банкке, сақтандыруға және кеңесшіге, PDF',mZ:'Агроном калькуляторлары',sZ:'Себу мөлшері, бүріккіш багы, астықтың есептік салмағы',mR:'Өнім тәуекелі',sR:'17 дақыл, маусым ауа райы, себу мерзімдері',shSec:'Бөлімдер',shFarm:'Шаруашылық және деректер',mC:'Шаруашылықты тексеру',sC:'Күнделік жазбалары бойынша қателер мен тәуекелдер',mW:'Өсімдіктерді қорғау',sW:'Арамшөптер, шегіртке, анықтамалық',mP:'Жайылым',sP:'Жүктеме және № 394 бұйрық нормативі',mF:'Қыстық азық',sF:'Құрғақ зат бойынша теңгерім',mFarm:'Шаруашылықтар',mPilot:'Пилот туралы пікір',mData:'Сақтық көшірме және офлайн',mSrc:'Ереже көздері',mPlan:'Тарифтер',tC:'Тексеру',tW:'Қорғау',tT:'Тарифтер',tX:'Тағы',zN:'Солтүстік (тәлімі)',zS:'Оңтүстік (суармалы)',crop:'Дақыл',base:'Алқаптың әдеттегі өнімі, ц/га',dNew:'Жаңа жазба',dField:'Алқап',dDate:'Күні',dOp:'Жұмыс түрі',dCrop:'Дақыл',dArea:'Алқап ауданы, га',dYield:'Жиналды, т (орақ кезінде)',dCost:'Шығын, ₸ (міндетті емес)',dPr:'Препарат және мөлшері (затбелгі бойынша)',dNote:'Ескертпе (фаза, ауа райы, байқағаныңыз)',dLast:'Алдыңғы жазба сияқты',dAdd:'Жазба қосу',dFilter:'Алқапты көрсету',foot:'Прототип. Ұпайлар мен коэффициенттер көрсетуге арналған: оларды агрономдармен және шаруашылық деректерімен нақтылау керек. Қосымша агрономды алмастырмайды және препарат мөлшерін бермейді. Деректер тек осы браузерде сақталады: «Тағы» бөлімінде көшірме жасаңыз.'};
+var KK={app:'Агро-көмекші',tR:'Тәуекел',tP:'Жайылым',tF:'Азық',tD:'Күнделік',tK:'Жоспар',tL:'Алқаптар',tM:'Тағы',tH:'Шолу',shRes:'Зерттеу',mI:'Сұхбаттар мен болжамдар',sI:'Сұхбат сұрақтары, қорытынды және пилот болжамдарын тексеру',mRep:'Шаруашылық есебі',sRep:'Банкке, сақтандыруға және кеңесшіге, PDF',mZ:'Агроном калькуляторлары',sZ:'Себу мөлшері, бүріккіш багы, астықтың есептік салмағы',mR:'Өнім тәуекелі',sR:'17 дақыл, маусым ауа райы, себу мерзімдері',shSec:'Бөлімдер',shFarm:'Шаруашылық және деректер',mC:'Шаруашылықты тексеру',sC:'Күнделік жазбалары бойынша қателер мен тәуекелдер',mW:'Өсімдіктерді қорғау',sW:'Арамшөптер, шегіртке, анықтамалық',mP:'Жайылым',sP:'Жүктеме және № 394 бұйрық нормативі',mF:'Қыстық азық',sF:'Құрғақ зат бойынша теңгерім',mFarm:'Шаруашылықтар',mPilot:'Пилот туралы пікір',mData:'Сақтық көшірме және офлайн',mSrc:'Ереже көздері',mPlan:'Тарифтер',tC:'Тексеру',tW:'Қорғау',tT:'Тарифтер',tX:'Тағы',zN:'Солтүстік (тәлімі)',zS:'Оңтүстік (суармалы)',crop:'Дақыл',base:'Алқаптың әдеттегі өнімі, ц/га',dNew:'Жаңа жазба',dField:'Алқап',dDate:'Күні',dOp:'Жұмыс түрі',dCrop:'Дақыл',dArea:'Алқап ауданы, га',dYield:'Жиналды, т (орақ кезінде)',dCost:'Шығын, ₸ (міндетті емес)',dPr:'Препарат және мөлшері (затбелгі бойынша)',dNote:'Ескертпе (фаза, ауа райы, байқағаныңыз)',dLast:'Алдыңғы жазба сияқты',dAdd:'Жазба қосу',dFilter:'Алқапты көрсету',foot:'Прототип. Ұпайлар мен коэффициенттер көрсетуге арналған: оларды агрономдармен және шаруашылық деректерімен нақтылау керек. Қосымша агрономды алмастырмайды және препарат мөлшерін бермейді. Деректер тек осы браузерде сақталады: «Тағы» бөлімінде көшірме жасаңыз.'};
 var LANG='ru';try{LANG=localStorage.getItem('agro_lang_v1')||'ru'}catch(e){}
 function setLang(l){LANG=l=='kk'?'kk':'ru';try{localStorage.setItem('agro_lang_v1',LANG)}catch(e){}document.documentElement.lang=LANG;
  Array.prototype.forEach.call(document.querySelectorAll('[data-i]'),function(e){if(e.dataset.ru==null)e.dataset.ru=e.textContent;e.textContent=LANG=='kk'&&KK[e.dataset.i]?KK[e.dataset.i]:e.dataset.ru});
@@ -1097,6 +1108,57 @@ function showOnb(){var o=$('onb');o.classList.remove('hidden');document.body.cla
 
 
 
+
+/* ===== Интервью и гипотезы (раздел 3–4 плана развития): для автора проекта ===== */
+var IVQ=['Что вы выращиваете и сколько у вас земли и скота?','Как вы сейчас ведёте записи по полям: тетрадь, Excel, программа, по памяти?','Какие решения за сезон даются тяжелее всего?','Расскажите о последней ошибке, которая стоила денег или урожая.','Как вы готовите заявки на субсидии, что отнимает время?','Какие данные о погоде и сроках сева вы используете?','(Показ прототипа) Что здесь непонятно, лишнее или не хватает?','Платили бы вы за такой инструмент, сколько и за что?'];
+var IVR=['Фермер','Консультант','Животновод'];
+var IV=[];try{IV=JSON.parse(localStorage.getItem('agro_iv_v1')||'[]');if(!Array.isArray(IV))IV=[]}catch(e){IV=[]}
+function saveIV(){try{localStorage.setItem('agro_iv_v1',JSON.stringify(IV))}catch(e){toast('Не удалось сохранить интервью.')}}
+function chg(id,opts,val){return'<div class=chips id="'+id+'" role=group>'+opts.map(function(o){return'<button type=button class=chip data-v="'+esc(o)+'" aria-pressed="'+(o===val)+'">'+esc(o)+'</button>'}).join('')+'</div>'}
+function chv(id){var b=$(id).querySelector('[aria-pressed="true"]');return b?b.dataset.v:''}
+function bindChg(root){Array.prototype.forEach.call(root.querySelectorAll('.chips[id] .chip'),function(b){b.onclick=function(){var on=b.getAttribute('aria-pressed')=='true';if(on&&b.parentNode.id=='ivRole')return;Array.prototype.forEach.call(b.parentNode.children,function(x){x.setAttribute('aria-pressed','false')});b.setAttribute('aria-pressed',on?'false':'true');if(b.parentNode.id=='ivRole')ivRoleSync()}})}
+function ivRoleSync(){var r=chv('ivRole');$('ivLiv').classList.toggle('hidden',r!='Животновод');$('ivCon').classList.toggle('hidden',r!='Консультант');$('ivSelfW').classList.toggle('hidden',r!='Фермер'&&r!='Животновод')}
+function ivHyp(){var F=IV.filter(function(i){return i.role=='Фермер'||i.role=='Животновод'}),C=IV.filter(function(i){return i.role=='Консультант'}),Lv=IV.filter(function(i){return i.role=='Животновод'});
+ var selfY=F.filter(function(i){return i.self=='Да'}).length,selfC=F.filter(function(i){return i.self=='Да'||i.self=='Нет'}).length;
+ var sh=0,us=0;IV.forEach(function(i){if(+i.ws>0){sh+=+i.ws;us+=Math.min(+i.wu||0,+i.ws)}});var fb=Object.keys(PILOT.fb),fu=fb.filter(function(k){return PILOT.fb[k]===1}).length;
+ var calcY=Lv.filter(function(i){return i.calc=='Да'}).length,conY=C.filter(function(i){return i.pilot=='Да'}).length,pre=IV.filter(function(i){return i.pre}).length;
+ var st=function(ok,done){return ok?'y':done?'n':'w'};
+ return[
+  {t:'Фермер ведёт дневник сам, если запись занимает меньше двух минут',c:'Критерий: не меньше 5 из 10 вносят записи сами через 2 недели',h:'Ведут сами: '+selfY+' · проверено: '+selfC+' из '+F.length+' хозяйств'+(PILOT.t.length?' · время записи в этом приложении, медиана: '+Math.round(med(PILOT.t))+' с':''),s:st(selfY>=5,selfC>=10)},
+  {t:'Предупреждения воспринимаются как полезные',c:'Критерий: не меньше 60 % предупреждений признаны полезными',h:(sh?'По интервью: '+us+' из '+sh+' ('+Math.round(us/sh*100)+' %)':'По интервью данных нет')+(fb.length?' · оценки в этом приложении: '+fu+' из '+fb.length:''),s:sh>=10?st(us/sh>=0.6,true):'w'},
+  {t:'Пастбищный и кормовой расчёт нужен животноводам',c:'Критерий: 5 интервью, не меньше 3 считают расчёт близким к реальности',h:'Интервью с животноводами: '+Lv.length+' из 5 · расчёт близок: '+calcY,s:st(calcY>=3,Lv.length>=5)},
+  {t:'Агроконсультанты — хороший канал и платящий клиент',c:'Критерий: 5 интервью, 2–3 консультанта готовы к пилоту',h:'Интервью с консультантами: '+C.length+' из 5 · готовы к пилоту: '+conY,s:st(conY>=2,C.length>=5)},
+  {t:'Готовность платить',c:'Критерий: хотя бы 2 предзаказа или письменных намерения',h:'Предзаказов и намерений: '+pre,s:pre>=2?'y':'w'}]}
+function renderIv(){
+ var H=ivHyp(),ST={y:'Подтверждается',n:'Не подтверждается',w:'Мало данных'},F=IV.filter(function(i){return i.role=='Фермер'}).length,C=IV.filter(function(i){return i.role=='Консультант'}).length,Lv=IV.filter(function(i){return i.role=='Животновод'}).length,pr=IV.filter(function(i){return +i.price>0}).map(function(i){return +i.price}),np=IV.filter(function(i){return i.nps!==''&&i.nps!=null}).map(function(i){return +i.nps});
+ $('ivH').innerHTML='<div class=hd><h2>Гипотезы пилота</h2><button class=lnk id=ivNew>Новое интервью</button></div><div class=zt><div><div class=kl>Фермеры</div><div class=zv>'+F+' <span class=u>из 10</span></div></div><div><div class=kl>Консультанты</div><div class=zv>'+C+' <span class=u>из 5</span></div></div><div><div class=kl>Животноводы</div><div class=zv>'+Lv+' <span class=u>из 5</span></div></div><div><div class=kl>Цена, медиана</div><div class=zv>'+(pr.length?fmt(med(pr))+' <span class=u>₸/мес</span>':'–')+'</div>'+(np.length?'<div class=ks>порекомендуют: '+num((np.reduce(function(a,b){return a+b},0)/np.length).toFixed(1))+' из 10</div>':'')+'</div></div>'
+ +H.map(function(h){return'<div class=hy><b>'+esc(h.t)+'</b><span class="st '+h.s+'">'+ST[h.s]+'</span><div class=meta>'+esc(h.c)+'<br>'+esc(h.h)+'</div></div>'}).join('')+'<p class=note>Гипотезы и критерии взяты из плана развития проекта. Данные интервью хранятся только на этом устройстве.</p>';
+ $('ivNew').onclick=function(){ivForm(null)};
+ var list=IV.slice().sort(function(a,b){return a.d<b.d?1:-1});
+ $('ivL').innerHTML='<div class=hd><h2>Интервью</h2>'+(IV.length?'<button class=lnk id=ivCsv>Выгрузить CSV</button>':'')+'</div>'+(list.length?list.map(function(i){var tags=[i.role,i.region,i.ha?fmt(i.ha)+' га':''].filter(Boolean).join(' · ');return'<div class=er><span class=oi style="--c:'+(i.role=='Консультант'?'#5856D6':i.role=='Животновод'?'#30B0C7':'#34C759')+'">'+MIC_SVG+'</span><div class=eb><div class=et><b>'+esc(i.who||'Без имени')+'</b><span class=ed>'+dmy(i.d)+'</span></div><div class=meta>'+esc(tags)+'</div><div class=en>'+[i.pay?'Платить: '+esc(i.pay.toLowerCase())+(+i.price>0?', '+fmt(i.price)+' ₸/мес':''):'',i.pre?'предзаказ':'',i.nps!==''&&i.nps!=null?'порекомендует: '+i.nps+'/10':''].filter(Boolean).join(' · ')+'</div><div class=acts><button class=edt data-iv="'+i.id+'">Открыть</button><button class=del data-ivd="'+i.id+'">Удалить</button></div></div></div>'}).join(''):'<div class=empty>'+MIC_SVG.replace('<svg','<svg style="width:44px;height:44px;display:block;margin:0 auto 10px;color:var(--mute)"')+'<b>Интервью пока нет</b><p class=meta>План на ближайшие 30 дней: 10 фермеров, 5 животноводов и 5 консультантов. Вопросы из скрипта появятся в форме.</p><button class="btn main" id=ivNew2>Начать интервью</button></div>');
+ if($('ivNew2'))$('ivNew2').onclick=function(){ivForm(null)};
+ if($('ivCsv'))$('ivCsv').onclick=function(){var h=['Дата','Кто','Роль','Область','Площадь, га'].concat(IVQ.map(function(q,k){return'Вопрос '+(k+1)})).concat(['Порекомендует (0–10)','Готов платить','Цена, ₸/мес','Предзаказ','Предупреждений показано','Признано полезными','Ведёт дневник сам через 2 недели','Расчёт пастбищ и кормов близок','Готов к пилоту']);
+  var rows=list.map(function(i){return[dmy(i.d),i.who,i.role,i.region,i.ha].concat(IVQ.map(function(q,k){return(i.a||[])[k]||''})).concat([i.nps,i.pay,i.price,i.pre?'да':'',i.ws,i.wu,i.self,i.calc,i.pilot])});
+  download('agro-intervyu-'+today()+'.csv','﻿'+[h].concat(rows).map(function(r){return r.map(csvCell).join(';')}).join('\r\n'),'text/csv;charset=utf-8')};
+ Array.prototype.forEach.call($('ivL').querySelectorAll('[data-iv]'),function(b){b.onclick=function(){ivForm(IV.filter(function(i){return String(i.id)==b.dataset.iv})[0])}});
+ Array.prototype.forEach.call($('ivL').querySelectorAll('[data-ivd]'),function(b){b.onclick=function(){var i=IV.filter(function(x){return String(x.id)==b.dataset.ivd})[0];if(!i)return;ask('Удалить интервью «'+(i.who||'без имени')+'»?','Удалить',function(){IV=IV.filter(function(x){return x!==i});saveIV();renderIv();toast('Интервью удалено.','Вернуть',function(){IV.push(i);saveIV();renderIv()})},true)}})}
+var MIC_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12.5h5"/></svg>';
+function ivForm(it){var i=it||{id:Date.now(),d:today(),who:'',role:'Фермер',region:RG?RG.o:'',ha:'',a:[],nps:'',pay:'',price:'',pre:false,ws:'',wu:'',self:'',calc:'',pilot:''},f=$('ivF');
+ f.classList.remove('hidden');
+ f.innerHTML='<h2>'+(it?'Интервью':'Новое интервью')+'</h2><div class=two><div><label for=ivD>Дата</label><input id=ivD type=date value="'+esc(i.d)+'"></div><div><label for=ivHa>Площадь, га</label><input id=ivHa type=number min=0 inputmode=decimal value="'+esc(i.ha)+'"></div></div><label for=ivWho>Кто: имя, хозяйство</label><input id=ivWho value="'+esc(i.who)+'" placeholder="Например: Ерлан, КХ «Береке»"><p class=lbl>Роль</p>'+chg('ivRole',IVR,i.role)+'<label for=ivReg>Область</label><select id=ivReg><option value="">Не указана</option>'+Object.keys(REG).map(function(o){return'<option'+(o==i.region?' selected':'')+'>'+o+'</option>'}).join('')+'</select>'
+ +'<p class=grp>Скрипт, 30 минут</p><div class=ivq>'+IVQ.map(function(q,k){return'<label for=ivA'+k+'>'+(k+1)+'. '+esc(q)+'</label><textarea id=ivA'+k+' rows=2>'+esc((i.a||[])[k]||'')+'</textarea>'}).join('')+'</div>'
+ +'<p class=grp>Итоги</p><div class=two><div><label for=ivNps>Порекомендует коллеге, 0–10</label><input id=ivNps type=number min=0 max=10 inputmode=numeric value="'+esc(i.nps)+'"></div><div><label for=ivPrice>Назвал цену, ₸ в месяц</label><input id=ivPrice type=number min=0 inputmode=numeric value="'+esc(i.price)+'"></div></div><p class=lbl>Готов платить</p>'+chg('ivPay',['Да','Возможно','Нет'],i.pay)
+ +'<label style="display:flex;gap:10px;align-items:center;color:var(--ink)"><input id=ivPre type=checkbox style="width:22px;min-height:22px"'+(i.pre?' checked':'')+'> Предзаказ или письменное намерение купить</label>'
+ +'<div class=two><div><label for=ivWs>Показано предупреждений</label><input id=ivWs type=number min=0 inputmode=numeric value="'+esc(i.ws)+'"></div><div><label for=ivWu>Из них признаны полезными</label><input id=ivWu type=number min=0 inputmode=numeric value="'+esc(i.wu)+'"></div></div>'
+ +'<div id=ivSelfW><p class=lbl>Через 2 недели ведёт дневник сам</p>'+chg('ivSelf',['Да','Нет','Не проверено'],i.self)+'</div><div id=ivLiv><p class=lbl>Расчёт пастбищ и кормов близок к реальности</p>'+chg('ivCalc',['Да','Нет'],i.calc)+'</div><div id=ivCon><p class=lbl>Готов к пилоту</p>'+chg('ivPilot',['Да','Нет'],i.pilot)+'</div>'
+ +'<div class=row><button class=btn id=ivCancel>Отмена</button><button class="btn main" id=ivSave>Сохранить</button></div>';
+ bindChg(f);ivRoleSync();f.scrollIntoView({block:'start'});
+ $('ivCancel').onclick=function(){f.classList.add('hidden');f.innerHTML=''};
+ $('ivSave').onclick=function(){i.d=$('ivD').value||today();i.who=$('ivWho').value.trim();i.role=chv('ivRole')||'Фермер';i.region=$('ivReg').value;i.ha=$('ivHa').value;i.a=IVQ.map(function(q,k){return $('ivA'+k).value.trim()});
+  var n=$('ivNps').value;i.nps=n===''?'':Math.max(0,Math.min(10,Math.round(+n)));i.pay=chv('ivPay');i.price=$('ivPrice').value;i.pre=$('ivPre').checked;i.ws=$('ivWs').value;i.wu=$('ivWu').value;
+  if(+i.wu>+i.ws&&i.ws!==''){toast('Полезных предупреждений не может быть больше, чем показано.');$('ivWu').focus();return}
+  i.self=chv('ivSelf');i.calc=chv('ivCalc');i.pilot=chv('ivPilot');if(!it)IV.push(i);saveIV();f.classList.add('hidden');f.innerHTML='';renderIv();window.scrollTo(0,0);toast(it?'Интервью сохранено.':'Интервью добавлено.')}}
+
 /* ===== Отчёты: паспорт поля и отчёт хозяйства (для банка, страховой, консультанта, инспекции) ===== */
 function repHead(t,sub){return'<div class=rh><div><b>Агро-помощник</b> · '+esc(farmName(FARMS.cur))+(RG&&farmName(FARMS.cur).indexOf(RG.o)<0?' · '+esc(RG.o)+' обл.':'')+'</div><div>Сформировано '+dmy(today())+'</div></div><h1>'+esc(t)+'</h1>'+(sub?'<p class=rs>'+sub+'</p>':'')}
 function repFoot(){return'<p class=rf>Отчёт сформирован в прототипе «Агро-помощник» по записям хозяйства. Проверки ориентировочные и не заменяют агронома. Прибыль считается по ценам, указанным хозяйством; субсидии и аренда учтены, только если внесены как затраты.</p>'}
@@ -1164,10 +1226,10 @@ function renderCalc(){
  seedCalc();tankCalc();grainCalc()}
 
 /* Вкладки и навигация */
-var TABS={Z:'calcs',H:'home',R:'risk',P:'past',F:'feed',D:'diary',L:'fld',G:'fieldp',K:'cal',C:'chk',W:'wd',X:'more',M:'menu'};
-var BAR=['H','D','L','K','M'],SUB='RPFCWXGZ';
-var TITLE={Z:'Калькуляторы',H:'Сводка',R:'Риск урожая',P:'Пастбище',F:'Корма на зиму',D:'Дневник полей',L:'Поля',K:'План работ',C:'Проверка',W:'Защита растений',X:'Хозяйство и данные',M:'Ещё'};
-var TITLE_KK={Z:'Калькуляторлар',H:'Шолу',R:'Өнім тәуекелі',P:'Жайылым',F:'Қыстық азық',D:'Алқаптар күнделігі',L:'Алқаптар',K:'Жұмыс жоспары',C:'Тексеру',W:'Өсімдіктерді қорғау',X:'Шаруашылық және деректер',M:'Тағы'};
+var TABS={I:'intv',Z:'calcs',H:'home',R:'risk',P:'past',F:'feed',D:'diary',L:'fld',G:'fieldp',K:'cal',C:'chk',W:'wd',X:'more',M:'menu'};
+var BAR=['H','D','L','K','M'],SUB='RPFCWXGZI';
+var TITLE={I:'Интервью и гипотезы',Z:'Калькуляторы',H:'Сводка',R:'Риск урожая',P:'Пастбище',F:'Корма на зиму',D:'Дневник полей',L:'Поля',K:'План работ',C:'Проверка',W:'Защита растений',X:'Хозяйство и данные',M:'Ещё'};
+var TITLE_KK={I:'Сұхбаттар мен болжамдар',Z:'Калькуляторлар',H:'Шолу',R:'Өнім тәуекелі',P:'Жайылым',F:'Қыстық азық',D:'Алқаптар күнделігі',L:'Алқаптар',K:'Жұмыс жоспары',C:'Тексеру',W:'Өсімдіктерді қорғау',X:'Шаруашылық және деректер',M:'Тағы'};
 var SHORT={H:'Сводка',D:'Дневник',L:'Поля',K:'План',M:'Ещё'},SHORT_KK={H:'Шолу',D:'Күнделік',L:'Алқаптар',K:'Жоспар',M:'Тағы'};
 var CUR='H',ORIG='M';
 function setTitle(){var t=CUR=='G'?CURF:(LANG=='kk'?TITLE_KK:TITLE)[CUR]||'';$('pageT').textContent=t;$('navT').textContent=t;document.title=CUR=='H'?'Агро-помощник':t+' · Агро-помощник';
@@ -1182,7 +1244,7 @@ function tab(k,sec){closeSheet();var toPlan=k=='T';if(toPlan)k='X';if(!TABS[k])k
  $('pageCap').classList.toggle('hidden',k!='H');
  $('herd').classList.toggle('hidden',k!='P'&&k!='F');
  setTitle();window.scrollTo(0,0);navUpd();
- if(k=='H')renderHome();if(k=='D')renderDiary();if(k=='C')calcC();if(k=='K')renderCal();if(k=='W')renderLoc();if(k=='L')renderFields();if(k=='G')renderFieldPage();if(k=='M')renderMenu();if(k=='Z')renderCalc();if(k=='X'){renderFarm();renderMore();planR(PM);PM=null}
+ if(k=='H')renderHome();if(k=='D')renderDiary();if(k=='C')calcC();if(k=='K')renderCal();if(k=='W')renderLoc();if(k=='L')renderFields();if(k=='G')renderFieldPage();if(k=='M')renderMenu();if(k=='Z')renderCalc();if(k=='I')renderIv();if(k=='X'){renderFarm();renderMore();planR(PM);PM=null}
  var go=toPlan?'planP':sec;if(go)setTimeout(function(){var y=$(go).getBoundingClientRect().top+window.scrollY-60;window.scrollTo(0,Math.max(0,y));navUpd()},0);
  calcP();calcF();calcN();try{localStorage.setItem('agro_tab_v1',k=='G'?'L':k)}catch(e){}}
 BAR.forEach(function(x){$('t'+x).onclick=function(){if(CUR==x)window.scrollTo({top:0,behavior:'smooth'});else tab(x)}});
@@ -1197,7 +1259,7 @@ function renderMenu(){var L=runChecks(ctxOf()),r=L.filter(function(q){return q.s
  $('mvPlan').textContent={free:'Бесплатный',farm:'Хозяйство',cons:'Консультант'}[PLAN]||'';
  var ri=riskIdx();$('mvRisk').textContent=ri.idx;
  $('mvDemo').textContent=FARMS.cur=='demo'?'открыто':'';
- var due=Object.keys(SRCS).filter(function(id){return SRCS[id][3]<=today()}).length;$('mvSrc').textContent=due?due+' пора проверить':'';$('mVer').textContent=APPV}
+ var due=Object.keys(SRCS).filter(function(id){return SRCS[id][3]<=today()}).length;$('mvSrc').textContent=due?due+' пора проверить':'';$('mVer').textContent=APPV;$('mvI').textContent=IV.length?IV.length+' '+(IV.length%10==1&&IV.length%100!=11?'интервью':'интервью'):''}
 
 /* Запуск */
 ['wP','wT','wH'].forEach(function(id){if(st.w[id]!=null&&st.w[id]!=='')$(id).value=st.w[id]});
