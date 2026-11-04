@@ -360,6 +360,7 @@ body.noscroll{overflow:hidden}
     <p id="dTotal" class="note"></p><div id="dSum" class="scr"></div>
     <div id="dList"></div>
     <div class="row"><button class="btn" id="dCsv">Скачать для Excel (CSV)</button><button class="btn" id="dPdf">Отчёт для печати или PDF</button></div>
+    <div class="row"><button class="btn" id="dImp">Загрузить из Excel (CSV)</button><button class="btn" id="dTpl">Шаблон таблицы</button></div><input id="dImpF" type="file" accept=".csv,text/csv,text/plain" class="hidden" aria-label="Файл CSV">
     <div class="row"><button class="btn" id="dExp">Показать текст для копирования</button><button class="btn" id="dFu">Обработки по месяцам (для ФУ-4)</button></div>
     <textarea id="dOut" class="hidden" readonly aria-label="Текст дневника" rows="8"></textarea>
     <div id="dFuOut"></div>
@@ -400,7 +401,7 @@ body.noscroll{overflow:hidden}
 
 <script>
 /* Хозяйства: у каждого свои данные. Первое хозяйство хранит данные под старыми ключами (совместимость с версией 0.1) */
-var APPV="1.7";
+var APPV="1.8";
 /* ART: страница открыта в просмотре claude.ai (там закрыты внешние сервисы, печать, системные окна) */
 var ART=false;
 var FARMS={list:[{id:"f1",name:"Моё хозяйство"}],cur:"f1"};try{var fz=JSON.parse(localStorage.getItem("agro_farms_v1")||"null");if(fz&&fz.list&&fz.list.length)FARMS=fz}catch(e){}
@@ -547,6 +548,32 @@ $("dExp").onclick=function(){
  $("dOut").classList.remove("hidden");$("dOut").select();
  try{navigator.clipboard.writeText($("dOut").value).then(function(){toast("Текст скопирован.")},function(){})}catch(e){}
 };
+
+/* ===== Загрузка записей из Excel (CSV) ===== */
+function csvParse(t){t=t.replace(/^﻿/,'');var first=t.split(/\r?\n/)[0]||'',cnt=function(c){return first.split(c).length-1},d=[';','\t',','].sort(function(a,b){return cnt(b)-cnt(a)})[0],rows=[],row=[],cell='',q=false;
+ for(var i=0;i<t.length;i++){var ch=t[i];if(q){if(ch=='"'){if(t[i+1]=='"'){cell+='"';i++}else q=false}else cell+=ch}else if(ch=='"')q=true;else if(ch==d){row.push(cell);cell=''}else if(ch=='\n'||ch=='\r'){if(ch=='\r'&&t[i+1]=='\n')i++;row.push(cell);rows.push(row);row=[];cell=''}else cell+=ch}
+ if(cell!==''||row.length){row.push(cell);rows.push(row)}return rows.filter(function(r){return r.some(function(c){return String(c).trim()!==''})})}
+function impDate(v){v=String(v||'').trim();var m;if((m=v.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/)))return m[1]+'-'+('0'+m[2]).slice(-2)+'-'+('0'+m[3]).slice(-2);
+ if((m=v.match(/^(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{2,4})/))){var y=+m[3];if(y<100)y+=2000;var mo=+m[2],dd=+m[1];if(mo<1||mo>12||dd<1||dd>31)return'';return y+'-'+('0'+mo).slice(-2)+'-'+('0'+dd).slice(-2)}return''}
+function impNum(v){v=String(v||'').replace(/[\s ₸]/g,'').replace(',','.');var n=parseFloat(v);return isNaN(n)||n<0?0:n}
+function impOp(v){var s=String(v||'').toLowerCase();if(/сев|посев|посад/.test(s))return'Сев или посадка';if(/убор|обмолот|сенокос|укос|копк/.test(s))return'Уборка';if(/удобр|подкорм|аммиак|селитр/.test(s))return'Удобрения';if(/полив|орош/.test(s))return'Полив';if(/защит|гербиц|инсект|фунгиц|опрыск|протрав|химобр/.test(s))return'Защита растений';if(/осмотр|обслед|учёт|учет|мониторинг/.test(s))return'Осмотр поля';if(/обраб|боронов|культивац|вспаш|дискован|лущ|пар|снегозад/.test(s))return'Обработка почвы';return OPS.indexOf(v)>=0?v:'Другое'}
+function impRows(rows){var H=rows[0].map(function(h){return String(h).toLowerCase()}),find=function(re){for(var i=0;i<H.length;i++)if(re.test(H[i]))return i;return-1};
+ var col={d:find(/дата|күні/),f:find(/поле|участ|алқап/),cr:find(/культур|дақыл/),o:find(/операц|работ|жұмыс/),a:find(/площад|га\b|аудан/),c:find(/затрат|стоим|сумм|расход|₸|шығын/),y:find(/собран|урожа|намолот|вал|жиналд/),p:find(/препарат|норма/),n:find(/замет|примеч|комментар|ескерт/)},body=rows.slice(1);
+ if(col.d<0||col.f<0){col={d:0,f:1,cr:2,o:3,a:4,c:5,y:6,p:7,n:8};body=rows;if(!impDate(rows[0][0]))body=rows.slice(1)}
+ var g=function(r,k){return col[k]>=0&&col[k]<r.length?String(r[col[k]]).trim():''},ok=[],bad=0;
+ body.forEach(function(r){var d=impDate(g(r,'d')),f=g(r,'f');if(!d||!f){bad++;return}var o=impOp(g(r,'o'));ok.push({f:f.slice(0,80),d:d,o:o,cr:g(r,'cr').slice(0,60),a:impNum(g(r,'a')),c:Math.round(impNum(g(r,'c'))),y:impNum(g(r,'y')),p:o=='Защита растений'?g(r,'p').slice(0,200):'',n:g(r,'n').slice(0,500)})});
+ return{ok:ok,bad:bad}}
+$('dTpl').onclick=function(){var h=['Дата','Поле','Культура','Операция','Площадь поля, га','Затраты, ₸','Собрано, т','Препарат и норма','Заметка'],ex=[['15.05.2026','Поле 1','Яровая пшеница','Сев или посадка','120','2500000','','','Норма высева 120 кг/га'],['05.09.2026','Поле 1','Яровая пшеница','Уборка','','1800000','160','','']];
+ download('agro-shablon.csv','﻿'+[h].concat(ex).map(function(r){return r.map(csvCell).join(';')}).join('\r\n'),'text/csv;charset=utf-8')};
+$('dImp').onclick=function(){$('dImpF').click()};
+$('dImpF').onchange=function(){var fl=$('dImpF').files[0];$('dImpF').value='';if(!fl)return;var r=new FileReader();r.onload=function(){var rows=csvParse(String(r.result||''));if(rows.length<1){toast('Файл пустой.');return}
+ var res=impRows(rows),key=function(e){return[e.f,e.d,e.o,e.cr,e.c,e.y,e.n].join('|')},have={};D.forEach(function(e){have[key(e)]=1});
+ var nw=res.ok.filter(function(e){return!have[key(e)]}),dup=res.ok.length-nw.length,fs={};nw.forEach(function(e){fs[e.f]=1});
+ if(!nw.length){toast(res.ok.length?'Все записи из файла уже есть в дневнике.':'Не нашлось строк с датой и полем. Проверьте файл или скачайте шаблон.');return}
+ var allF=fieldsList();Object.keys(fs).forEach(function(f){if(allF.indexOf(f)<0)allF.push(f)});
+ if(PLAN=='free'&&allF.length>3){tab('T');planR('В бесплатном тарифе дневник ведётся по 3 полям, а в файле их больше. Полный дневник входит в тариф «Хозяйство».');return}
+ ask('Найдено записей: '+nw.length+', полей: '+Object.keys(fs).length+'.'+(dup?' Уже есть в дневнике: '+dup+'.':'')+(res.bad?' Пропущено строк без даты или поля: '+res.bad+'.':'')+' Загрузить?','Загрузить',function(){var base=Date.now();nw.forEach(function(e,i){if(e.a>0)AR[e.f]=e.a;D.push({id:base+i,f:e.f,d:e.d,o:e.o,cr:e.cr,c:e.c,y:e.y,p:e.p,n:e.n})});save();saveAR();refreshData();toast('Загружено записей: '+nw.length+'.','Отменить',function(){var ids={};nw.forEach(function(e,i){ids[base+i]=1});D=D.filter(function(e){return!ids[e.id]});save();refreshData()})})};r.readAsText(fl)};
+
 $("dCsv").onclick=function(){
  var list=dFiltered().sort(byDateAsc);if(!list.length){toast("Нет записей для выгрузки.");return}
  var h=["Дата","Поле","Культура","Операция","Площадь поля, га","Затраты, ₸","Собрано, т","Препарат и норма","Заметка"];
@@ -1416,7 +1443,7 @@ $('navAdd').onclick=function(){openSheet('new',CUR=='G'?{f:CURF}:null)};
 $('shX').onclick=closeSheet;$('sheetW').addEventListener('click',function(e){if(e.target===$('sheetW'))closeSheet()});
 document.addEventListener('keydown',function(e){if(e.key=='Escape'){if(!$('phv').classList.contains('hidden')){$('phvX').click();return}if(!$('dlg').classList.contains('hidden'))$('dlg').classList.add('hidden');else closeSheet()}});
 Array.prototype.forEach.call(document.querySelectorAll('#menu [data-go]'),function(b){b.onclick=function(){if(b.dataset.go=='demo'){loadDemo();return}if(b.dataset.go=='rep'){report('farm');return}tab(b.dataset.go,b.dataset.sec)}});
-var CHANGES=[['1.7','Казахский язык: поля, страница поля, план работ, погода, проверка'],['1.6','Учёт сорняков на площадках: рамка, подсчёт, плотность на 1 м², гектар и поле, сравнение с порогом'],['1.5','План на сезон одним касанием: задачи по каждому полю с культурой по совету севооборота'],['1.4','Фото в дневнике: снимок к записи, галерея поля, отправка агроному'],['1.3','Нормы агронома: свой обычный урожай, сроки возврата культур и нормы высева'],['1.2','Предупреждение об условиях для грибных болезней, отправка сводки поля агроному'],['1.1','Проверки: обработка без препарата, сев без уборки. Экран «Что нового»'],['1.0','Поиск по дневнику, переименование и объединение полей, справка о субсидиях'],['0.9','Пять зон: север, запад, центр, восток и юг'],['0.8','Интервью и проверка гипотез пилота'],['0.7','Паспорт поля и отчёт хозяйства в PDF'],['0.6','Калькуляторы агронома, обмен хозяйством файлом, казахский шире'],['0.5','Сводка, погода, окна опрыскивания, карточки полей, демо-хозяйство'],['0.4','Дизайн в стиле iOS, светлая и тёмная тема'],['0.3','Поля и севооборот, экономика, несколько хозяйств, офлайн-режим'],['0.2','План работ, саранча, экспорт, источники правил, пилотные метрики']];
+var CHANGES=[['1.8','Загрузка записей из Excel (CSV) и шаблон таблицы'],['1.7','Казахский язык: поля, страница поля, план работ, погода, проверка'],['1.6','Учёт сорняков на площадках: рамка, подсчёт, плотность на 1 м², гектар и поле, сравнение с порогом'],['1.5','План на сезон одним касанием: задачи по каждому полю с культурой по совету севооборота'],['1.4','Фото в дневнике: снимок к записи, галерея поля, отправка агроному'],['1.3','Нормы агронома: свой обычный урожай, сроки возврата культур и нормы высева'],['1.2','Предупреждение об условиях для грибных болезней, отправка сводки поля агроному'],['1.1','Проверки: обработка без препарата, сев без уборки. Экран «Что нового»'],['1.0','Поиск по дневнику, переименование и объединение полей, справка о субсидиях'],['0.9','Пять зон: север, запад, центр, восток и юг'],['0.8','Интервью и проверка гипотез пилота'],['0.7','Паспорт поля и отчёт хозяйства в PDF'],['0.6','Калькуляторы агронома, обмен хозяйством файлом, казахский шире'],['0.5','Сводка, погода, окна опрыскивания, карточки полей, демо-хозяйство'],['0.4','Дизайн в стиле iOS, светлая и тёмная тема'],['0.3','Поля и севооборот, экономика, несколько хозяйств, офлайн-режим'],['0.2','План работ, саранча, экспорт, источники правил, пилотные метрики']];
 function renderMenu(){var nb=$('mNew');if(nb)nb.onclick=function(){var t=$('mNewT');if(!t.innerHTML)t.innerHTML=CHANGES.map(function(c){return'<div class=tli style="grid-template-columns:44px 1fr"><span class=tly>'+c[0]+'</span><span class=meta>'+esc(c[1])+'</span></div>'}).join('');t.classList.toggle('hidden')};var L=runChecks(ctxOf()),r=L.filter(function(q){return q.s=='r'}).length,bc=$('mbC');bc.textContent=r;bc.classList.toggle('hidden',!r);
  Array.prototype.forEach.call(document.querySelectorAll('[data-lk]'),function(e){e.classList.toggle('hidden',PLAN!='free')});
  $('mvFarm').textContent=FARMS.list.length>1?FARMS.list.length+' · '+farmName(FARMS.cur):farmName(FARMS.cur);
