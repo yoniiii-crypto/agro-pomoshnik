@@ -1,5 +1,5 @@
 /* Агро-помощник: офлайн-режим. Сначала сеть (чтобы получать обновления), без сети — сохранённая копия. */
-const CACHE = 'agro-v2.6';
+const CACHE = 'agro-v2.7';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon.svg'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)));
