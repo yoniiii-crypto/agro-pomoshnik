@@ -383,7 +383,7 @@ body.noscroll{overflow:hidden}
 
 <script>
 /* Хозяйства: у каждого свои данные. Первое хозяйство хранит данные под старыми ключами (совместимость с версией 0.1) */
-var APPV="1.1";
+var APPV="1.2";
 /* ART: страница открыта в просмотре claude.ai (там закрыты внешние сервисы, печать, системные окна) */
 var ART=false;
 var FARMS={list:[{id:"f1",name:"Моё хозяйство"}],cur:"f1"};try{var fz=JSON.parse(localStorage.getItem("agro_farms_v1")||"null");if(fz&&fz.list&&fz.list.length)FARMS=fz}catch(e){}
@@ -632,6 +632,7 @@ var SRCS={
  kg:['Сроки сева яровых зерновых по районам','Казгидромет, окончательный прогноз сроков сева на 2026 год','2026-05','2027-03-15'],
  rot:['Севооборот: сроки возврата культур, предшественники','Общие рекомендации по севооборотам (учебники земледелия, научные статьи); сверить с НИИ земледелия области','2026-11','2027-02-28'],
  land:['Мораторий на продажу земли (по плану до 31.12.2026)','Земельный кодекс РК; влияет на советы по аренде и залогу','2026-11','2026-12-31'],
+ dis:['Условия для грибных болезней по прогнозу: влажность от 90 %, +12…+27 °C, от 6 часов','Обобщение агрономических материалов о заражении ржавчиной и септориозом; пороги условные, сверить с агрономами','2026-11','2027-04-30'],
  wx:['Погода, заморозки, окна опрыскивания, ГТК по архиву','Open-Meteo: модельный прогноз и реанализ по координатам. Бесплатно для некоммерческого использования; для коммерческого запуска нужен платный тариф или данные Казгидромета','2026-11','2027-03-01'],
  calc:['Калькуляторы: норма высева, зачётный вес зерна','Классические формулы агрономии и правил количественно-качественного учёта зерна; базисные нормы и округление по договору с элеватором','2026-11','2027-03-01'],
  zones:['Зоны запад, центр, восток: культуры и стартовые урожаи','Демонстрационные значения по аналогии с севером, сверить с опытными станциями зон','—','2027-02-28'],
@@ -933,6 +934,13 @@ function wxAlerts(){if(!WX)return[];var d=WX.d,a=[],m=new Date().getMonth()+1,ho
   if(g>=15)add('wd','y','Сильный ветер: '+day,'Порывы до '+Math.round(g)+' м/с. Опрыскивание и внесение удобрений отложите.');
   if(p>=20)add('rn','y','Сильные осадки: '+day,r1(p)+' мм за сутки. Возможны смыв удобрений и задержка полевых работ.')});
  return a}
+/* Условия для грибных болезней (ржавчина, септориоз): долгие периоды высокой влажности при умеренной температуре.
+   Это сигнал осмотреть посевы, а не прогноз болезни: пороги условные, сверяются с агрономом */
+function disRisk(){if(!WX||!WX.h||!WX.h.relative_humidity_2m)return[];var m=new Date().getMonth()+1;if(m<5||m>8)return[];var h=WX.h,now=Date.now(),best=0,bs=0,run=0,rs=0;
+ for(var i=0;i<h.time.length;i++){var t=+new Date(h.time[i]);if(t<now-3600e3||t>now+72*3600e3){run=0;continue}var rh=h.relative_humidity_2m[i],tc=h.temperature_2m[i];
+  if(rh>=90&&tc>=12&&tc<=27){if(!run)rs=t;run++;if(run>best){best=run;bs=rs}}else run=0}
+ if(best<6)return[];var d=new Date(bs);
+ return[{s:'y',t:'Условия для грибных болезней: '+fd(d),x:'Около '+best+' часов подряд влажность выше 90 % при +12…+27 °C. Такие периоды благоприятны для заражения ржавчиной и септориозом. Осмотрите посевы через 7–10 дней, при признаках болезни посоветуйтесь с агрономом.'}]}
 /* Окна для опрыскивания: ветер до 4 м/с, +8…+25 °C, влажность от 40 %, без осадков 4 часа, светлое время */
 function sprayWin(){if(!WX)return[];var h=WX.h,now=Date.now(),W=[],cur=null;
  for(var i=0;i<h.time.length;i++){var t=new Date(h.time[i]);if(+t<now-3600e3||+t>now+72*3600e3){cur=null;continue}
@@ -946,7 +954,7 @@ function wxCard(){
  if(ART)return'<h2>'+T('Погода на полях','Алқаптағы ауа райы')+'</h2><p class=meta>Прогноз на неделю, заморозки и окна для опрыскивания работают в версии приложения, выложенной на сайт или установленной на телефон. В этом просмотре внешние сервисы закрыты.</p><p class=note>Область: '+esc(RG.o)+'. <button class=lnk id=wxPl>Изменить</button></p>';
  if(!WX)return'<h2>'+T('Погода на полях','Алқаптағы ауа райы')+'</h2><p class=meta>'+(WXL?'Загружаем прогноз…':(WXE||'Прогноза пока нет.'))+'</p>'+(WXL?'':'<div class=row><button class=btn id=wxRe>Загрузить прогноз</button></div>')+'<p class=note>'+esc(RG.label)+', '+RG.o+' область.</p>';
  var d=WX.d,c=WX.c||{},w=wmo(c.weather_code!=null?c.weather_code:d.weather_code[0]),lo=Math.min.apply(null,d.temperature_2m_min),hi=Math.max.apply(null,d.temperature_2m_max),rng=Math.max(1,hi-lo);
- var A=wxAlerts(),S=sprayWin(),mo=new Date().getMonth()+1;
+ var A=wxAlerts().concat(disRisk()),S=sprayWin(),mo=new Date().getMonth()+1;
  var h='<div class=wxh><div><div class=wxt>'+(c.temperature_2m!=null?deg(c.temperature_2m):deg(d.temperature_2m_max[0]))+'</div><div class=meta>'+w[1]+' · '+esc(RG.label)+'</div><div class=meta>Макс. '+deg(d.temperature_2m_max[0])+', мин. '+deg(d.temperature_2m_min[0])+(c.wind_speed_10m!=null?' · ветер '+r1(c.wind_speed_10m)+' м/с':'')+'</div></div>'+wIco(w[0],56)+'</div>';
  h+=A.map(function(a){return'<div class="al '+a.s+'"><b>'+esc(a.t)+'</b><div>'+esc(a.x)+'</div></div>'}).join('');
  h+='<p class=grp>'+T('Прогноз на 7 дней','7 күндік болжам')+'</p><div class=wk>'+d.time.map(function(t,i){var mn=d.temperature_2m_min[i],mx=d.temperature_2m_max[i],p=d.precipitation_sum[i]||0,pp=d.precipitation_probability_max?d.precipitation_probability_max[i]:null,ww=wmo(d.weather_code[i]);
@@ -1034,6 +1042,15 @@ function renderFieldCards(){var H=hist(D),fs=fieldsList(),L=runChecks(ctxOf()),t
  $('lCards').innerHTML=fs.length?'<p class=sh>'+fs.length+' '+(fs.length==1?'поле':fs.length<5?'поля':'полей')+(tot?' · '+fmt(tot)+' га':'')+'</p><div class=list>'+fs.map(function(f){var lc=lastCrop(H[f]),g=lc?lc.c[0].g:'другое',w=fieldWarn(f,L),r=w.filter(function(q){return q.s=='r'}).length,a=advise(H[f]||{},st.z);
   return'<button class=cell data-f="'+esc(f)+'"><span class=ic style="--c:'+GC[g]+'">'+FIELD_SVG+'</span><span class=ct>'+esc(f)+'<small>'+(AR[f]?fmt(AR[f])+' га':'площадь не указана')+(lc?' · '+esc(lc.c.map(function(c){return c.k}).join(', '))+' ('+lc.y+')':'')+(a&&a.good.length?'<br>Дальше: '+esc(a.good.slice(0,2).join(' или ')):'')+'</small></span>'+(r?'<span class=badge>'+r+'</span>':'')+'<span class=chev></span></button>'}).join('')+'</div>':'<div class=empty>'+FIELD_SVG+'<b>Полей пока нет</b><p class=meta>Поля появятся, когда вы добавите первую запись в дневник.</p><button class="btn main" data-new=1>Новая запись</button></div>';
  Array.prototype.forEach.call($('lCards').querySelectorAll('[data-f]'),function(b){b.onclick=function(){CURF=b.dataset.f;tab('G')}});var nb=$('lCards').querySelector('[data-new]');if(nb)nb.onclick=function(){openSheet('new')}}
+function fieldSummary(f){var H=hist(D),h=H[f]||{},a=AR[f]||0,ss=seasons(D).filter(function(o){return o.f==f}).sort(function(x,y){return x.y-y.y}),w=fieldWarn(f,runChecks(ctxOf())),rec=D.filter(function(e){return e.f==f}).sort(function(x,y){return -byDateAsc(x,y)}).slice(0,6);
+ var L=[f+(a?', '+fmt(a)+' га':'')+' ('+farmName(FARMS.cur)+(RG&&farmName(FARMS.cur).indexOf(RG.o)<0?', '+RG.o+' обл.':'')+')'];
+ if(ss.length)L.push('История: '+ss.map(function(o){var k=o.crop?cropOf(o.crop).k:'';return o.y+' '+(k||'—')+(a&&o.q?' '+num((o.q*10/a).toFixed(1))+' ц/га':'')}).join('; '));
+ if(rec.length)L.push('Последние записи: '+rec.map(function(e){return dmy(e.d)+' '+e.o.toLowerCase()+(e.cr?' ('+e.cr+')':'')+(e.y?', собрано '+num(e.y)+' т':'')+(e.p?', '+e.p:'')+(e.n?', '+e.n:'')}).join('; '));
+ if(w.length)L.push('Замечания: '+w.map(function(q){return q.t+'. '+q.x}).join(' '));
+ L.push('Отправлено из «Агро-помощника»');return L.join('\n\n')}
+function shareField(f){var t=fieldSummary(f),box=$('gShareT'),show=function(){box.value=t;box.classList.remove('hidden');box.select();toast('Скопируйте текст и отправьте агроному в мессенджере.')};
+ if(navigator.share&&!ART){navigator.share({text:t}).catch(function(e){if(e&&e.name!='AbortError')show()});return}
+ try{navigator.clipboard.writeText(t).then(function(){box.value=t;box.classList.remove('hidden');toast('Текст скопирован: вставьте его в мессенджер.')},show)}catch(e){show()}}
 function renderFieldPage(){var f=CURF;if(!f||fieldsList().indexOf(f)<0){tab('L');return}
  var H=hist(D),h=H[f]||{},ys=yearsOf(h),L=runChecks(ctxOf()),w=fieldWarn(f,L),ss=seasons(D).filter(function(o){return o.f==f}),a=AR[f]||0,lc=lastCrop(h);
  var last=ss.filter(function(o){return o.q})[0],pr=last&&last.crop?+PR[cropOf(last.crop).k]||0:0;
@@ -1046,10 +1063,10 @@ function renderFieldPage(){var f=CURF;if(!f||fieldsList().indexOf(f)<0){tab('L')
  $('gHist').innerHTML='<div class=hd><h2>История поля</h2><button class=lnk id=gPass>Паспорт поля</button></div>'+(ys.length?'<div class=tl>'+ys.slice().reverse().map(function(y){var s=ss.filter(function(o){return o.y==y})[0];return'<div class=tli><span class=tly>'+y+'</span><span class=tlc>'+h[y].map(function(c){return'<span class=chipc><i style="background:'+GC[c.g]+'"></i>'+esc(c.k)+'</span>'}).join('')+'</span><span class=tlv>'+(s&&s.q&&a?num((s.q*10/a).toFixed(1))+' ц/га':'')+'</span></div>'}).join('')+'</div>':'<p class=meta>Нет записей о посеве или уборке.</p>')+(yr.length>=2?'<p class=grp>Урожайность по годам, ц/га</p>'+cols(yr):'');
  var ad=advise(h,st.z);
  $('gAdv').innerHTML='<h2>Что сеять в '+nextSeason()+'</h2>'+(ad?(ad.good.length?'<div><span class=ok>Подходят:</span> '+esc(ad.good.join(', '))+'</div><div class=meta>Почему: '+esc(ad.why)+'.</div>':'')+(ad.no.length?'<div style="margin-top:6px"><span class=bad>Не сейте:</span> '+esc(ad.no.join('; '))+'</div>':''):'<p class=meta>Нужна хотя бы одна запись о посеве.</p>')+srcLine('rot');
- $('gWarn').innerHTML='<h2>Проверка поля</h2>'+(w.length?w.map(function(q){return'<div class="al '+q.s+'"><b>'+esc(q.t)+'</b><div>'+esc(q.x)+'</div><div class=meta>'+esc(q.a)+'</div></div>'}).join(''):'<p class=meta>Замечаний нет.</p>');
+ $('gWarn').innerHTML='<h2>Проверка поля</h2>'+(w.length?w.map(function(q){return'<div class="al '+q.s+'"><b>'+esc(q.t)+'</b><div>'+esc(q.x)+'</div><div class=meta>'+esc(q.a)+'</div></div>'}).join(''):'<p class=meta>Замечаний нет.</p>')+'<div class=row><button class=btn id=gShare>Отправить агроному</button></div><textarea id=gShareT class=hidden readonly rows=8 aria-label="Сводка по полю"></textarea>';
  var rec=D.filter(function(e){return e.f==f}).sort(function(x,y){return -byDateAsc(x,y)});
  $('gRec').innerHTML='<div class=hd><h2>Записи</h2><button class=lnk id=gAdd>Добавить</button></div>'+(rec.length?rec.slice(0,12).map(entryRow).join('')+(rec.length>12?'<p class=note>Ещё '+(rec.length-12)+' в дневнике.</p>':''):'<p class=meta>Записей нет.</p>');
- $('gAdd').onclick=function(){openSheet('new',{f:f})};$('gPass').onclick=function(){report('field')};bindEntryBtns($('gRec'));
+ $('gAdd').onclick=function(){openSheet('new',{f:f})};$('gShare').onclick=function(){shareField(f)};$('gPass').onclick=function(){report('field')};bindEntryBtns($('gRec'));
  setTitle()}
 
 /* ===== Дневник: строки с иконками, группы по месяцам ===== */
@@ -1269,7 +1286,7 @@ $('navAdd').onclick=function(){openSheet('new',CUR=='G'?{f:CURF}:null)};
 $('shX').onclick=closeSheet;$('sheetW').addEventListener('click',function(e){if(e.target===$('sheetW'))closeSheet()});
 document.addEventListener('keydown',function(e){if(e.key=='Escape'){if(!$('dlg').classList.contains('hidden'))$('dlg').classList.add('hidden');else closeSheet()}});
 Array.prototype.forEach.call(document.querySelectorAll('#menu [data-go]'),function(b){b.onclick=function(){if(b.dataset.go=='demo'){loadDemo();return}if(b.dataset.go=='rep'){report('farm');return}tab(b.dataset.go,b.dataset.sec)}});
-var CHANGES=[['1.1','Проверки: обработка без препарата, сев без уборки. Экран «Что нового»'],['1.0','Поиск по дневнику, переименование и объединение полей, справка о субсидиях'],['0.9','Пять зон: север, запад, центр, восток и юг'],['0.8','Интервью и проверка гипотез пилота'],['0.7','Паспорт поля и отчёт хозяйства в PDF'],['0.6','Калькуляторы агронома, обмен хозяйством файлом, казахский шире'],['0.5','Сводка, погода, окна опрыскивания, карточки полей, демо-хозяйство'],['0.4','Дизайн в стиле iOS, светлая и тёмная тема'],['0.3','Поля и севооборот, экономика, несколько хозяйств, офлайн-режим'],['0.2','План работ, саранча, экспорт, источники правил, пилотные метрики']];
+var CHANGES=[['1.2','Предупреждение об условиях для грибных болезней, отправка сводки поля агроному'],['1.1','Проверки: обработка без препарата, сев без уборки. Экран «Что нового»'],['1.0','Поиск по дневнику, переименование и объединение полей, справка о субсидиях'],['0.9','Пять зон: север, запад, центр, восток и юг'],['0.8','Интервью и проверка гипотез пилота'],['0.7','Паспорт поля и отчёт хозяйства в PDF'],['0.6','Калькуляторы агронома, обмен хозяйством файлом, казахский шире'],['0.5','Сводка, погода, окна опрыскивания, карточки полей, демо-хозяйство'],['0.4','Дизайн в стиле iOS, светлая и тёмная тема'],['0.3','Поля и севооборот, экономика, несколько хозяйств, офлайн-режим'],['0.2','План работ, саранча, экспорт, источники правил, пилотные метрики']];
 function renderMenu(){var nb=$('mNew');if(nb)nb.onclick=function(){var t=$('mNewT');if(!t.innerHTML)t.innerHTML=CHANGES.map(function(c){return'<div class=tli style="grid-template-columns:44px 1fr"><span class=tly>'+c[0]+'</span><span class=meta>'+esc(c[1])+'</span></div>'}).join('');t.classList.toggle('hidden')};var L=runChecks(ctxOf()),r=L.filter(function(q){return q.s=='r'}).length,bc=$('mbC');bc.textContent=r;bc.classList.toggle('hidden',!r);
  Array.prototype.forEach.call(document.querySelectorAll('[data-lk]'),function(e){e.classList.toggle('hidden',PLAN!='free')});
  $('mvFarm').textContent=FARMS.list.length>1?FARMS.list.length+' · '+farmName(FARMS.cur):farmName(FARMS.cur);
