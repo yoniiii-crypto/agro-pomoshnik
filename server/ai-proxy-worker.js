@@ -49,7 +49,10 @@ export default {
     if (!env.GEMINI_KEY) return reply(500, 'GEMINI_KEY is not set on the server');
     if (tooMany(request.headers.get('CF-Connecting-IP') || 'unknown')) return reply(429, 'Too many requests, wait a minute');
 
-    const model = new URL(request.url).searchParams.get('model') || 'gemini-3.5-flash';
+    const params = new URL(request.url).searchParams;
+    const model = params.get('model') || 'gemini-3.5-flash';
+    // stream=1: ответ идёт потоком, и текст появляется в приложении по мере написания
+    const method = params.get('stream') === '1' ? 'streamGenerateContent?alt=sse' : 'generateContent';
     if (!MODEL_RE.test(model)) return reply(400, 'Bad model');
 
     const body = await request.arrayBuffer();
@@ -58,7 +61,7 @@ export default {
     let upstream;
     try {
       upstream = await fetch(
-        'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent',
+        'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':' + method,
         { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': env.GEMINI_KEY }, body },
       );
     } catch (e) {
@@ -66,7 +69,7 @@ export default {
     }
     return new Response(upstream.body, {
       status: upstream.status,
-      headers: { ...cors, 'Content-Type': 'application/json' },
+      headers: { ...cors, 'Content-Type': upstream.headers.get('Content-Type') || 'application/json' },
     });
   },
 };
