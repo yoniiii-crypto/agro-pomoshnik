@@ -12,6 +12,8 @@
 //    была последняя: так два телефона не затирают записи друг друга.
 //    Токенов два: полный (читать и менять) и только для просмотра — для
 //    банка, страховой или наблюдателя. С токеном просмотра запись запрещена.
+//    Фото к записям тоже общие: каждое фото шифруется на телефоне и хранится
+//    отдельной строкой. Фото не меняются, поэтому версии для них не нужны.
 //
 // Как запустить ИИ: dash.cloudflare.com → Workers & Pages → Create → Worker →
 // вставить этот файл → Deploy → Settings → Variables and Secrets → добавить
@@ -50,6 +52,10 @@ const SYNC_MAX_FARMS = 3000;  // всего хозяйств: чужие скр�
 const ID_RE = /^[0-9a-f]{16}$/;
 const AUTH_RE = /^[0-9a-f]{64}$/;
 const TAG_RE = /^[0-9a-f]{16}$/;
+const PID_RE = /^[0-9A-Za-z_-]{1,40}$/;
+const PHOTO_MAX = 900000;        // символов в одном зашифрованном фото
+const PHOTOS_PER_FARM = 300;     // фото у одного хозяйства
+const PHOTO_TOTAL = 300000000;   // символов фото на всём сервере: бесплатная база D1 — до 500 МБ
 const syncHits = new Map();
 const newHits = new Map();
 let schemaReady = false;
@@ -69,6 +75,7 @@ function newTag() {
 //   rauth — токен «только просмотр», задаётся при создании хозяйства.
 //   data — хозяйство, зашифрованное на телефоне. Сервер его не читает.
 //   tag  — метка версии: запись (put) проходит, только если base совпадает с текущей меткой.
+//   pid  — номер фото (pput, pget), pids — список номеров для удаления (pdel).
 async function handleSync(request, env, path, ip, reply, json) {
   if (path === '/sync/hello') return json(200, { ok: true, sync: !!env.AGRO_DB, v: 1, max: SYNC_MAX });
   if (!env.AGRO_DB) return reply(501, 'Sync is not set up on the server');
@@ -80,12 +87,14 @@ async function handleSync(request, env, path, ip, reply, json) {
   try { q = JSON.parse(raw); } catch (e) { return reply(400, 'Bad JSON'); }
   if (!q || !ID_RE.test(q.id || '') || !AUTH_RE.test(q.auth || '')) return reply(400, 'Bad id or auth');
   const hasData = typeof q.data === 'string' && q.data.length > 0;
-  if (hasData && q.data.length > SYNC_MAX) return reply(413, 'Farm data is too large');
+  if (hasData && q.data.length > (path === '/sync/pput' ? PHOTO_MAX : SYNC_MAX)) return reply(413, path === '/sync/pput' ? 'Photo is too large' : 'Farm data is too large');
 
   const db = env.AGRO_DB;
   try {
     if (!schemaReady) {
       await db.prepare('CREATE TABLE IF NOT EXISTS farms (id TEXT PRIMARY KEY, ah TEXT NOT NULL, rh TEXT NOT NULL, tag TEXT NOT NULL, data TEXT NOT NULL, mt INTEGER NOT NULL, ct INTEGER NOT NULL)').run();
+      // sz стоит перед data: сумма размеров считается без чтения самих фото
+      await db.prepare('CREATE TABLE IF NOT EXISTS photos (fid TEXT NOT NULL, pid TEXT NOT NULL, sz INTEGER NOT NULL, ct INTEGER NOT NULL, data TEXT NOT NULL, PRIMARY KEY (fid, pid))').run();
       schemaReady = true;
     }
     const ah = await sha256hex(q.auth); // на сервере лежит только хеш токена
@@ -112,6 +121,16 @@ async function handleSync(request, env, path, ip, reply, json) {
 
     if (path === '/sync/head') return json(200, { ok: true, role, tag: row.tag, mt: row.mt });
     if (path === '/sync/get') return json(200, { ok: true, role, tag: row.tag, mt: row.mt, data: row.data });
+    if (path === '/sync/pget') {
+      if (!PID_RE.test(q.pid || '')) return reply(400, 'Bad photo id');
+      const ph = await db.prepare('SELECT data FROM photos WHERE fid = ?1 AND pid = ?2').bind(q.id, q.pid).first();
+      if (!ph) return reply(404, 'No such photo');
+      return json(200, { ok: true, data: ph.data });
+    }
+    if (path === '/sync/plist') {
+      const all = await db.prepare('SELECT pid, ct FROM photos WHERE fid = ?1').bind(q.id).all();
+      return json(200, { ok: true, list: (all.results || []).map((r) => [r.pid, r.ct]) });
+    }
     if (role !== 'w') return reply(403, 'Read-only access');
     if (path === '/sync/put') {
       if (!hasData) return reply(400, 'No data');
@@ -123,8 +142,27 @@ async function handleSync(request, env, path, ip, reply, json) {
       const cur = await db.prepare('SELECT tag FROM farms WHERE id = ?1').bind(q.id).first();
       return json(409, { error: { code: 409, message: 'conflict' }, tag: cur ? cur.tag : '' });
     }
+    if (path === '/sync/pput') {
+      if (!PID_RE.test(q.pid || '')) return reply(400, 'Bad photo id');
+      if (!hasData) return reply(400, 'No data');
+      const has = await db.prepare('SELECT 1 AS x FROM photos WHERE fid = ?1 AND pid = ?2').bind(q.id, q.pid).first();
+      if (has) return json(200, { ok: true }); // фото не меняются: второй раз то же самое не пишем
+      const mine = await db.prepare('SELECT COUNT(*) AS n FROM photos WHERE fid = ?1').bind(q.id).first();
+      if (mine && mine.n >= PHOTOS_PER_FARM) return reply(507, 'Photo limit for this farm');
+      const total = await db.prepare('SELECT COALESCE(SUM(sz), 0) AS s FROM photos').first();
+      if (total && total.s + q.data.length > PHOTO_TOTAL) return reply(507, 'The photo storage is full');
+      await db.prepare('INSERT OR IGNORE INTO photos (fid, pid, sz, ct, data) VALUES (?1, ?2, ?3, ?4, ?5)')
+        .bind(q.id, q.pid, q.data.length, now, q.data).run();
+      return json(200, { ok: true });
+    }
+    if (path === '/sync/pdel') {
+      const pids = Array.isArray(q.pids) ? q.pids.filter((x) => PID_RE.test(String(x))).slice(0, 100) : [];
+      for (const pid of pids) await db.prepare('DELETE FROM photos WHERE fid = ?1 AND pid = ?2').bind(q.id, pid).run();
+      return json(200, { ok: true, n: pids.length });
+    }
     if (path === '/sync/delete') {
       await db.prepare('DELETE FROM farms WHERE id = ?1 AND ah = ?2').bind(q.id, ah).run();
+      await db.prepare('DELETE FROM photos WHERE fid = ?1').bind(q.id).run();
       return json(200, { ok: true });
     }
     return reply(404, 'Unknown sync route');

@@ -48,10 +48,32 @@ r = await call('/sync/create', { id: 'd'.repeat(16), auth: AUTH, rauth: VIEW, da
 r = await call('/sync/nope', { id: ID, auth: AUTH }, { ip: newIp() }); ok('неизвестный маршрут → 404', r.s === 404);
 r = await call('/sync/get', { id: ID, auth: AUTH }, { origin: 'https://evil.example', ip: newIp() }); ok('чужой сайт → 403', r.s === 403 && r.j.error.message === 'Origin not allowed');
 r = await call('/sync/get', null, { method: 'OPTIONS', ip: newIp() }); ok('preflight → 204', r.s === 204);
+// фото
+r = await call('/sync/pput', { id: ID, auth: AUTH, pid: 'p1', data: 'PH1' }, { ip: newIp() }); ok('фото: загрузка', r.s === 200, r.j);
+r = await call('/sync/pput', { id: ID, auth: AUTH, pid: 'p1', data: 'OTHER' }, { ip: newIp() }); ok('фото не перезаписывается тем же номером', r.s === 200);
+r = await call('/sync/pget', { id: ID, auth: AUTH, pid: 'p1' }, { ip: newIp() }); ok('фото: чтение', r.s === 200 && r.j.data === 'PH1', r.j);
+r = await call('/sync/pget', { id: ID, auth: VIEW, pid: 'p1' }, { ip: newIp() }); ok('фото: просмотрщик может читать', r.s === 200 && r.j.data === 'PH1');
+r = await call('/sync/pput', { id: ID, auth: VIEW, pid: 'p2', data: 'V' }, { ip: newIp() }); ok('фото: просмотрщик не может загружать', r.s === 403);
+r = await call('/sync/pdel', { id: ID, auth: VIEW, pids: ['p1'] }, { ip: newIp() }); ok('фото: просмотрщик не может удалять', r.s === 403);
+r = await call('/sync/pget', { id: ID, auth: BAD, pid: 'p1' }, { ip: newIp() }); ok('фото: чужой токен → 403', r.s === 403 && !('data' in (r.j || {})));
+r = await call('/sync/pget', { id: ID, auth: AUTH, pid: 'nope' }, { ip: newIp() }); ok('фото: нет такого → 404', r.s === 404 && r.j.error.message === 'No such photo');
+r = await call('/sync/pget', { id: ID, auth: AUTH, pid: '../x' }, { ip: newIp() }); ok('фото: кривой номер → 400', r.s === 400);
+r = await call('/sync/pput', { id: ID, auth: AUTH, pid: 'pbig', data: 'x'.repeat(900001) }, { ip: newIp() }); ok('фото: больше лимита → 413', r.s === 413);
+r = await call('/sync/pput', { id: ID, auth: AUTH, pid: 'p2', data: 'PH2' }, { ip: newIp() });
+r = await call('/sync/plist', { id: ID, auth: VIEW }, { ip: newIp() }); ok('фото: список с датами', r.s === 200 && r.j.list.map((x) => x[0]).sort().join() === 'p1,p2' && r.j.list.every((x) => x[1] > 0), r.j);
+r = await call('/sync/pget', { id: 'd'.repeat(16), auth: AUTH, pid: 'p1' }, { ip: newIp() }); ok('фото другого хозяйства не видно', r.s === 404);
+r = await call('/sync/pdel', { id: ID, auth: AUTH, pids: ['p2', '../bad'] }, { ip: newIp() }); ok('фото: удаление', r.s === 200 && r.j.n === 1);
+r = await call('/sync/plist', { id: ID, auth: AUTH }, { ip: newIp() }); ok('после удаления осталось одно фото', r.j.list.length === 1 && r.j.list[0][0] === 'p1');
+{ const ins = db._db.prepare('INSERT INTO photos (fid, pid, sz, ct, data) VALUES (?, ?, 1, 1, ?)'); for (let i = 0; i < 299; i++) ins.run(ID, 'q' + i, 'x'); }
+r = await call('/sync/pput', { id: ID, auth: AUTH, pid: 'over', data: 'x' }, { ip: newIp() }); ok('фото: не больше 300 на хозяйство → 507', r.s === 507 && /farm/.test(r.j.error.message), r.j);
+db._db.prepare("DELETE FROM photos WHERE pid LIKE 'q%'").run(); db._db.prepare("INSERT INTO photos (fid, pid, sz, ct, data) VALUES ('0000000000000000', 'huge', 299999999, 1, 'x')").run();
+r = await call('/sync/pput', { id: ID, auth: AUTH, pid: 'p3', data: 'xx' }, { ip: newIp() }); ok('фото: место на сервере кончилось → 507', r.s === 507 && /full/.test(r.j.error.message), r.j);
+db._db.prepare("DELETE FROM photos WHERE pid = 'huge'").run();
 r = await call('/sync/delete', { id: ID, auth: BAD }, { ip: newIp() }); ok('удаление чужим токеном → 403', r.s === 403);
 r = await call('/sync/get', { id: ID, auth: AUTH }, { ip: newIp() }); ok('после чужой попытки хозяйство на месте', r.s === 200);
 r = await call('/sync/delete', { id: ID, auth: AUTH }, { ip: newIp() }); ok('удаление своим токеном', r.s === 200);
 r = await call('/sync/get', { id: ID, auth: AUTH }, { ip: newIp() }); ok('после удаления → 404', r.s === 404);
+ok('вместе с хозяйством удалены и его фото', db._db.prepare('SELECT COUNT(*) AS n FROM photos WHERE fid = ?').get(ID).n === 0);
 // на сервере только хеш токена и зашифрованная строка
 const rows = db._db.prepare('SELECT * FROM farms').all();
 ok('в базе нет токенов в открытом виде', rows.every((x) => x.ah !== AUTH && x.rh !== VIEW && /^[0-9a-f]{64}$/.test(x.ah) && /^[0-9a-f]{64}$/.test(x.rh)), rows.map((x) => Object.keys(x).join(',')));

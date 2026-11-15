@@ -115,6 +115,17 @@ let fails = 0; const ok = (name, cond, extra) => { if (!cond) fails++; console.l
   await sync(A); await sync(B);
   ok('у агронома подпись фермера тоже на месте', await B.p.evaluate(() => (D.filter((e) => e.id === 8001)[0] || {}).by === 'Фермер Ахмет'));
 
+  // Общие фото: снимок с телефона A шифруется, уходит на сервер и появляется у B
+  const pid = await A.p.evaluate(() => new Promise((res) => { const c = document.createElement('canvas'); c.width = 240; c.height = 160; const g = c.getContext('2d'); g.fillStyle = '#3a7'; g.fillRect(0, 0, 240, 160); g.fillStyle = '#c33'; g.fillRect(40, 30, 60, 60);
+    c.toBlob((bl) => { const id = 'p' + Date.now().toString(36) + 'te'; pPut(id, bl).then(() => { D.push({ id: 9100, f: 'Поле 1', d: '2026-11-15', o: 'Осмотр поля', cr: '', c: 0, y: 0, p: '', n: 'фото ржавчины', ph: [id] }); save(); res(id); }); }, 'image/jpeg', 0.8); }));
+  await sync(A);
+  const sizeA = await A.p.evaluate((id) => pGet(id).then((x) => x.size), pid), ph = db._db.prepare('SELECT pid, sz, data FROM photos').all();
+  ok('фото ушло на сервер зашифрованным', log.includes('A pput 200') && ph.length === 1 && ph[0].pid === pid && !ph[0].data.startsWith('/9j/') && ph[0].sz === ph[0].data.length, ph.map((x) => [x.pid, x.sz, x.data.slice(0, 8)]));
+  await sync(A); ok('отправленное фото второй раз не отправляется', log.filter((x) => x === 'A pput 200').length === 1);
+  await B.p.evaluate(() => tab('D')); await sync(B); await B.p.waitForTimeout(300);
+  ok('у агронома фото загрузилось само, такое же, как у фермера', (await B.p.evaluate((id) => pGet(id).then((x) => x && x.size), pid)) === sizeA && log.includes('B pget 200'));
+  ok('в дневнике агронома фото видно', await B.p.evaluate((id) => /blob:/.test((document.querySelector('#dList .ph[data-ph="' + id + '"]') || {}).style.backgroundImage || ''), pid));
+
   // Только просмотр: отдельный код для банка, страховой или наблюдателя
   await A.p.evaluate(() => tab('X', 'mFarm')); await A.p.waitForSelector('#syShow'); await A.p.click('#syShow'); await A.p.waitForFunction(() => /^[0-9A-Z]{4}-/.test(document.getElementById('syViewT').textContent), null, { timeout: 5000 });
   const vcode = (await A.p.textContent('#syViewT')).trim();
@@ -129,6 +140,12 @@ let fails = 0; const ok = (name, cond, extra) => { if (!cond) fails++; console.l
   ok('правки наблюдателя не уходят на сервер и откатываются на его телефоне', farms()[0].data === before && !log.some((x) => /^V put/.test(x)) && await ids(V) === await ids(A) && !(await V.p.evaluate(() => 'Чужое поле' in AR)) && /только для просмотра/.test(await V.p.textContent('#toastT')), [await ids(V), await V.p.textContent('#toastT')]);
   await A.p.evaluate(() => { D.push({ id: 6001, f: 'Поле 1', d: '2026-11-14', o: 'Осмотр поля', cr: '', c: 0, y: 0, p: '', n: 'для наблюдателя' }); save(); }); await sync(A); await sync(V);
   ok('новые записи владельца доходят до наблюдателя', (await ids(V)).includes('6001'));
+  ok('наблюдатель видит фото, но сам фото не отправляет', (await V.p.evaluate((id) => pGetAny(id).then((x) => x && x.size), pid)) === sizeA && !log.some((x) => /^V (pput|pdel)/.test(x)));
+  // фото удалённой записи убирается с сервера при суточной уборке
+  await A.p.evaluate(() => { D = D.filter((e) => e.id !== 9100); save(); }); await sync(A);
+  ok('сразу после удаления записи фото на сервере ещё есть (запас на сутки)', db._db.prepare('SELECT COUNT(*) AS n FROM photos').get().n === 1);
+  db._db.prepare('UPDATE photos SET ct = 1').run(); await A.p.evaluate(() => localStorage.removeItem(FK('agro_syncphgc_v1'))); await sync(A);
+  ok('через сутки фото удалённой записи убрано с сервера', db._db.prepare('SELECT COUNT(*) AS n FROM photos').get().n === 0 && log.includes('A pdel 200'));
   const W = await device('W'); await W.p.goto(APP); await W.p.waitForTimeout(400); await W.p.evaluate(() => tab('X', 'mFarm')); await W.p.waitForSelector('#syJoin'); await W.p.fill('#syCode', vcode);
   await Promise.all([W.p.waitForEvent('load'), W.p.click('#syJoin')]); await W.p.waitForFunction(() => typeof D != 'undefined' && D.length > 0, null, { timeout: 10000 });
   ok('код просмотра, введённый вручную, сам распознаётся как «только просмотр»', await W.p.evaluate(() => syncMeta(FARMS.cur).ro === 1) && await ids(W) === await ids(A));
