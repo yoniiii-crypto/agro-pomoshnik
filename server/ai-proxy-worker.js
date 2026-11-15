@@ -10,6 +10,8 @@
 //    приложение на телефоне, ключ шифрования на сервер не попадает. Сервер
 //    проверяет токен доступа и принимает новую версию, только если у телефона
 //    была последняя: так два телефона не затирают записи друг друга.
+//    Токенов два: полный (читать и менять) и только для просмотра — для
+//    банка, страховой или наблюдателя. С токеном просмотра запись запрещена.
 //
 // Как запустить ИИ: dash.cloudflare.com → Workers & Pages → Create → Worker →
 // вставить этот файл → Deploy → Settings → Variables and Secrets → добавить
@@ -64,6 +66,7 @@ function newTag() {
 
 // Запрос общей базы: JSON { id, auth, ... }.
 //   id   — номер хозяйства, auth — токен доступа; оба телефон получает из кода хозяйства.
+//   rauth — токен «только просмотр», задаётся при создании хозяйства.
 //   data — хозяйство, зашифрованное на телефоне. Сервер его не читает.
 //   tag  — метка версии: запись (put) проходит, только если base совпадает с текущей меткой.
 async function handleSync(request, env, path, ip, reply, json) {
@@ -82,7 +85,7 @@ async function handleSync(request, env, path, ip, reply, json) {
   const db = env.AGRO_DB;
   try {
     if (!schemaReady) {
-      await db.prepare('CREATE TABLE IF NOT EXISTS farms (id TEXT PRIMARY KEY, ah TEXT NOT NULL, tag TEXT NOT NULL, data TEXT NOT NULL, mt INTEGER NOT NULL, ct INTEGER NOT NULL)').run();
+      await db.prepare('CREATE TABLE IF NOT EXISTS farms (id TEXT PRIMARY KEY, ah TEXT NOT NULL, rh TEXT NOT NULL, tag TEXT NOT NULL, data TEXT NOT NULL, mt INTEGER NOT NULL, ct INTEGER NOT NULL)').run();
       schemaReady = true;
     }
     const ah = await sha256hex(q.auth); // на сервере лежит только хеш токена
@@ -90,23 +93,26 @@ async function handleSync(request, env, path, ip, reply, json) {
 
     if (path === '/sync/create') {
       if (!hasData) return reply(400, 'No data');
+      if (!AUTH_RE.test(q.rauth || '') || q.rauth === q.auth) return reply(400, 'Bad view token');
       if (tooMany(newHits, ip, SYNC_NEW_PER_DAY, 86400000)) return reply(429, 'Too many new farms today');
       const count = await db.prepare('SELECT COUNT(*) AS n FROM farms').first();
       if (count && count.n >= SYNC_MAX_FARMS) return reply(507, 'The shared database is full');
       const tag = newTag();
-      const made = await db.prepare('INSERT OR IGNORE INTO farms (id, ah, tag, data, mt, ct) VALUES (?1, ?2, ?3, ?4, ?5, ?5)')
-        .bind(q.id, ah, tag, q.data, now).run();
+      const made = await db.prepare('INSERT OR IGNORE INTO farms (id, ah, rh, tag, data, mt, ct) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?6)')
+        .bind(q.id, ah, await sha256hex(q.rauth), tag, q.data, now).run();
       if (!made.meta.changes) return reply(409, 'exists');
       return json(200, { ok: true, tag });
     }
 
-    const cols = path === '/sync/get' ? 'ah, tag, mt, data' : 'ah, tag, mt';
+    const cols = path === '/sync/get' ? 'ah, rh, tag, mt, data' : 'ah, rh, tag, mt';
     const row = await db.prepare('SELECT ' + cols + ' FROM farms WHERE id = ?1').bind(q.id).first();
     if (!row) return reply(404, 'No such farm');
-    if (row.ah !== ah) return reply(403, 'Wrong access code');
+    const role = row.ah === ah ? 'w' : row.rh === ah ? 'r' : ''; // w — полный доступ, r — только просмотр
+    if (!role) return reply(403, 'Wrong access code');
 
-    if (path === '/sync/head') return json(200, { ok: true, tag: row.tag, mt: row.mt });
-    if (path === '/sync/get') return json(200, { ok: true, tag: row.tag, mt: row.mt, data: row.data });
+    if (path === '/sync/head') return json(200, { ok: true, role, tag: row.tag, mt: row.mt });
+    if (path === '/sync/get') return json(200, { ok: true, role, tag: row.tag, mt: row.mt, data: row.data });
+    if (role !== 'w') return reply(403, 'Read-only access');
     if (path === '/sync/put') {
       if (!hasData) return reply(400, 'No data');
       if (!TAG_RE.test(q.base || '')) return reply(400, 'Bad base tag');

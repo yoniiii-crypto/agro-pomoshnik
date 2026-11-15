@@ -1,0 +1,165 @@
+// Общая база: сквозная проверка на двух «телефонах» (два отдельных браузера) и настоящем коде сервера.
+// Сервер работает в этом же процессе: запросы страницы перехватываются и передаются в server/ai-proxy-worker.js,
+// вместо Cloudflare D1 — SQLite. Приложение открывается с маленького локального http-сервера, как с сайта:
+// у страницы, открытой файлом, Chromium после перезагрузки иногда даёт пустое хранилище.
+// Нужен Playwright. Запуск: node tests/sync-e2e.test.js
+const { chromium } = require('playwright');
+const path = require('path');
+const http = require('http');
+const fs = require('fs');
+const ROOT = path.resolve(__dirname, '..');
+let APP = '';
+const SRV = 'https://agro-ai.example.workers.dev';
+const SITE = 'https://yoniiii-crypto.github.io';
+let fails = 0; const ok = (name, cond, extra) => { if (!cond) fails++; console.log((cond ? 'ok  ' : 'FAIL') + ' ' + name + (extra !== undefined && !cond ? ' | ' + JSON.stringify(extra) : '')); };
+
+(async () => {
+  const worker = (await import(path.resolve(__dirname, '..', 'server', 'ai-proxy-worker.js'))).default;
+  const { fakeD1 } = await import(path.resolve(__dirname, 'fake-d1.mjs'));
+  const db = fakeD1(); const env = { GEMINI_KEY: 'K', AGRO_DB: db }; const log = [];
+  const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.png': 'image/png', '.svg': 'image/svg+xml' };
+  const web = http.createServer((rq, rs) => {
+    const f = path.join(ROOT, decodeURIComponent(new URL(rq.url, 'http://x').pathname));
+    if (!f.startsWith(ROOT + path.sep) || !fs.existsSync(f) || !fs.statSync(f).isFile()) { rs.writeHead(404); return rs.end(); }
+    rs.writeHead(200, { 'Content-Type': types[path.extname(f)] || 'application/octet-stream' }); fs.createReadStream(f).pipe(rs);
+  });
+  await new Promise((r) => web.listen(0, '127.0.0.1', r)); APP = 'http://127.0.0.1:' + web.address().port + '/index.html';
+  const b = await chromium.launch();
+  const device = async (name, o = {}) => {
+    const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: 'block' });
+    await ctx.route(/open-meteo/, (r) => r.abort());
+    await ctx.addInitScript((u) => { try { if (localStorage.getItem('agro_aiproxy_v1') == null) localStorage.setItem('agro_aiproxy_v1', u); if (localStorage.getItem('agro_onb_v1') == null) localStorage.setItem('agro_onb_v1', '1'); } catch (e) {} }, SRV);
+    await ctx.route(/agro-ai\.example\.workers\.dev/, async (route) => {
+      const rq = route.request(); const H = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*' };
+      if (o.oldServer) return route.fulfill({ status: 400, contentType: 'application/json', headers: H, body: JSON.stringify({ error: { code: 400, message: 'Bad model' } }) });
+      const res = await worker.fetch(new Request(rq.url(), { method: rq.method(), headers: { 'Content-Type': 'application/json', Origin: SITE, 'CF-Connecting-IP': name }, body: rq.method() === 'POST' ? rq.postData() : undefined }), env);
+      if (rq.method() === 'POST') log.push(name + ' ' + new URL(rq.url()).pathname.replace('/sync/', '') + ' ' + res.status);
+      const h = {}; res.headers.forEach((v, k) => { h[k] = v; }); Object.assign(h, H);
+      await route.fulfill({ status: res.status, headers: h, body: await res.text() });
+    });
+    const p = await ctx.newPage(); const errs = []; p.on('pageerror', (e) => errs.push(e.message));
+    return { ctx, p, errs, name };
+  };
+  const ids = (d) => d.p.evaluate(() => D.map((e) => e.id).sort((x, y) => x - y).join(','));
+  const sync = async (d) => { await d.p.evaluate(() => syncRun(FARMS.cur, true)); await d.p.waitForTimeout(150); };
+  const farms = () => db._db.prepare('SELECT id, length(data) AS n, data FROM farms').all();
+
+  // Телефон A: своё хозяйство с записями
+  const A = await device('A'); await A.p.goto(APP); await A.p.waitForTimeout(500);
+  await A.p.evaluate(() => { FARMS.list[0].name = 'КХ «Береке»'; saveFarms(); D.push({ id: 1001, f: 'Поле 1', d: '2026-05-16', o: 'Сев или посадка', cr: 'Яровая пшеница', c: 3500000, y: 0, p: '', n: 'норма 120 кг/га' }, { id: 1002, f: 'Поле 2', d: '2026-09-03', o: 'Уборка', cr: 'Ячмень', c: 900000, y: 320, p: '', n: '' }); save();
+    AR['Поле 1'] = 420; AR['Поле 2'] = 380; saveAR(); TK.push({ id: 2001, d: '2026-11-20', o: 'Другое', f: '', n: 'Договор на семена', done: 0 }); saveTK(); PR['яровая пшеница'] = 92000; savePR(); tab('X', 'mFarm'); });
+  await A.p.waitForSelector('#syMake', { timeout: 10000 });
+  ok('раздел «Общая база» появился, когда сервер его поддерживает', await A.p.isVisible('#syMake') && await A.p.isVisible('#syCode'));
+  await A.p.click('#syMake'); await A.p.click('#dlgOk'); await A.p.waitForSelector('#syCodeT', { state: 'visible', timeout: 10000 });
+  const code = (await A.p.textContent('#syCodeT')).trim();
+  ok('после «Сделать общим» показан код из 20 знаков', /^([0-9A-HJKMNP-TV-Z]{4}-){4}[0-9A-HJKMNP-TV-Z]{4}$/.test(code), code);
+  let F = farms(); ok('на сервере одно хозяйство, и в нём нет открытого текста', F.length === 1 && !/Поле|Береке|пшеница|1001/.test(F[0].data) && !F[0].data.includes(code.replace(/-/g, '')), F.map((x) => x.n));
+  ok('строка состояния под заголовком показывает «общее»', /общее/.test(await A.p.textContent('#farmBar')), await A.p.textContent('#farmBar'));
+
+  // Телефон B: подключение по ссылке-приглашению
+  const B = await device('B'); await B.p.goto(APP + '#join=' + code); await B.p.waitForSelector('#dlg:not(.hidden)', { timeout: 10000 });
+  ok('ссылка-приглашение спрашивает подтверждение', /Подключить общее хозяйство/.test(await B.p.textContent('#dlgT')) && !(await B.p.evaluate(() => location.hash)));
+  await Promise.all([B.p.waitForEvent('load'), B.p.click('#dlgOk')]); await B.p.waitForFunction(() => typeof D != 'undefined' && D.length > 0, null, { timeout: 10000 });
+  ok('на втором телефоне появились записи, поля, план, цены и название', await ids(B) === '1001,1002' && await B.p.evaluate(() => AR['Поле 1'] === 420 && TK.length === 1 && PR['яровая пшеница'] === 92000 && farmName(FARMS.cur) === 'КХ «Береке»' && FARMS.list.length === 1));
+  ok('пустое хозяйство на втором телефоне заменено общим, а не добавлено вторым', await B.p.evaluate(() => FARMS.list.length === 1 && !!syncMeta(FARMS.cur)));
+
+  // Запись на B через форму → доходит до A без перезагрузки страницы
+  await B.p.evaluate(() => { tab('D'); openSheet('new'); }); await B.p.waitForTimeout(300); await B.p.fill('#dField', 'Поле 1'); await B.p.fill('#dNote', 'осмотр агронома: ржавчина'); await B.p.click('#dAdd'); await B.p.waitForFunction(() => D.length === 3);
+  const t0 = Date.now(); while (!log.includes('B put 200') && Date.now() - t0 < 20000) await B.p.waitForTimeout(250);
+  ok('телефон B сам отправил новую запись через несколько секунд (' + ((Date.now() - t0) / 1000).toFixed(1) + ' с)', log.includes('B put 200') && Date.now() - t0 < 15000, log.slice(-4));
+  // Правка уже после запуска приложения: телефон замечает её сам и отправляет через несколько секунд
+  await B.p.waitForTimeout(1200); const puts0 = log.filter((x) => x === 'B put 200').length, t1 = Date.now();
+  await B.p.evaluate(() => { const e = D[D.length - 1]; e.n += ', очаги по краю поля'; save(); });
+  while (log.filter((x) => x === 'B put 200').length === puts0 && Date.now() - t1 < 20000) await B.p.waitForTimeout(250);
+  ok('правка после запуска ушла сама (' + ((Date.now() - t1) / 1000).toFixed(1) + ' с)', log.filter((x) => x === 'B put 200').length === puts0 + 1 && Date.now() - t1 < 12000);
+  let loads = 0; A.p.on('load', () => loads++); await A.p.evaluate(() => tab('D')); await sync(A);
+  ok('запись агронома появилась на телефоне A без перезагрузки страницы', (await A.p.evaluate(() => D.length)) === 3 && loads === 0 && /ржавчина, очаги по краю поля/.test(await A.p.textContent('#dList')));
+
+  // Удаление на A → пропадает на B; правка на B → доходит до A
+  await A.p.evaluate(() => { D = D.filter((e) => e.id !== 1002); save(); }); await sync(A);
+  await B.p.evaluate(() => { const e = D.filter((x) => x.id === 1001)[0]; e.c = 4000000; save(); }); await sync(B); await sync(A);
+  ok('удаление и правка разошлись по обоим телефонам', !(await ids(A)).includes('1002') && !(await ids(B)).includes('1002') && (await A.p.evaluate(() => D.filter((x) => x.id === 1001)[0].c)) === 4000000 && await ids(A) === await ids(B));
+
+  // Оба без связи добавляют записи, потом связь возвращается
+  await A.ctx.setOffline(true); await B.ctx.setOffline(true);
+  await A.p.evaluate(() => { D.push({ id: 3001, f: 'Поле 2', d: '2026-11-10', o: 'Осмотр поля', cr: '', c: 0, y: 0, p: '', n: 'офлайн A' }); save(); AR['Поле 3'] = 510; saveAR(); });
+  await B.p.evaluate(() => { D.push({ id: 3002, f: 'Поле 1', d: '2026-11-11', o: 'Осмотр поля', cr: '', c: 0, y: 0, p: '', n: 'офлайн B' }); save(); TK.push({ id: 2002, d: '2026-11-25', o: 'Другое', f: '', n: 'Снегозадержание', done: 0 }); saveTK(); });
+  const off = await A.p.evaluate(() => syncRun(FARMS.cur, true)); ok('без интернета синхронизация тихо откладывается', off && off.offline === true);
+  await A.ctx.setOffline(false); await B.ctx.setOffline(false); await sync(A); await sync(B); await sync(A);
+  ok('записи, сделанные без связи на двух телефонах, слились', (await ids(A)).includes('3001') && (await ids(A)).includes('3002') && await ids(A) === await ids(B) && await A.p.evaluate(() => TK.length === 2 && AR['Поле 3'] === 510) && await B.p.evaluate(() => AR['Поле 3'] === 510));
+
+  // Чужая правка приходит, пока на A открыта форма с набранным текстом
+  await A.p.evaluate(() => { tab('D'); openSheet('new'); }); await A.p.waitForTimeout(300); await A.p.fill('#dNote', 'набираю и не хочу потерять');
+  await B.p.evaluate(() => { D.push({ id: 4001, f: 'Поле 2', d: '2026-11-12', o: 'Удобрения', cr: '', c: 100, y: 0, p: '', n: 'пока A печатает' }); save(); }); await sync(B); await sync(A);
+  ok('данные обновились, а открытая форма и набранный текст на месте', (await ids(A)).includes('4001') && await A.p.inputValue('#dNote') === 'набираю и не хочу потерять' && await A.p.isVisible('#sheetW'));
+  await A.p.fill('#dField', 'Поле 3'); await A.p.click('#dAdd'); await A.p.waitForTimeout(300); await sync(A); await sync(B);
+  ok('запись из открытой формы сохранилась и не затёрла чужую', (await A.p.evaluate(() => D.some((e) => e.n === 'набираю и не хочу потерять') && D.some((e) => e.id === 4001))) && await ids(A) === await ids(B));
+
+  // Переименование хозяйства и нормы агронома
+  await A.p.evaluate(() => { FARMS.list[0].name = 'КХ «Береке-2»'; saveFarms(); NORMS.y['N|Яровая пшеница'] = 15; saveNorms(); }); await sync(A); await sync(B);
+  ok('новое название и норма агронома дошли до второго телефона', await B.p.evaluate(() => farmName(FARMS.cur) === 'КХ «Береке-2»' && NORMS.y['N|Яровая пшеница'] === 15));
+
+  // Команда: имя телефона, автор записи, задача «кому», карточка «Команда» на Сводке
+  await A.p.evaluate(() => tab('X', 'mFarm')); await A.p.waitForSelector('#syMe'); await A.p.fill('#syMe', '  Фермер   Ахмет '); await A.p.click('#syMeS');
+  ok('имя телефона сохраняется без лишних пробелов', await A.p.evaluate(() => syncMe() === 'Фермер Ахмет' && $('syMe').value === 'Фермер Ахмет'));
+  const nA = await A.p.evaluate(() => D.length);
+  await B.p.evaluate(() => { localStorage.setItem('agro_me_v1', 'Агроном Ерлан'); tab('D'); openSheet('new'); }); await B.p.waitForTimeout(300); await B.p.fill('#dField', 'Поле 2'); await B.p.fill('#dNote', 'запись агронома с подписью'); await B.p.click('#dAdd'); await B.p.waitForTimeout(200);
+  await B.p.evaluate(() => tab('K')); await B.p.waitForSelector('#kTo'); await B.p.fill('#kN', 'Проверить влагу на Поле 2'); await B.p.fill('#kTo', 'фермер ахмет'); await B.p.click('#kAdd'); await B.p.waitForTimeout(200);
+  ok('новая запись и задача агронома подписаны его именем, старые записи — без подписи', await B.p.evaluate(() => D.filter((e) => e.n === 'запись агронома с подписью')[0].by === 'Агроном Ерлан' && TK.filter((t) => t.n === 'Проверить влагу на Поле 2')[0].by === 'Агроном Ерлан' && !D.filter((e) => e.id === 1001)[0].by));
+  await sync(B); await sync(A); await A.p.evaluate(() => tab('H')); await A.p.waitForTimeout(300);
+  const team = await A.p.textContent('#hTeam'), htask = await A.p.textContent('#hTask');
+  ok('у фермера на Сводке: запись агронома с его именем и задача с пометкой «вам»', (await A.p.evaluate(() => D.length)) === nA + 1 && /Агроном Ерлан/.test(team) && /Задач для вас: 1/.test(team) && /кому: фермер ахмет/.test(htask) && /вам/.test(htask) && /автор: Агроном Ерлан/.test(htask), [team, htask]);
+  await A.p.evaluate(() => { D.push({ id: 8001, f: 'Поле 1', d: '2026-11-14', o: 'Осмотр поля', cr: '', c: 0, y: 0, p: '', n: 'своя запись' }); save(); tab('H'); }); await A.p.waitForTimeout(200);
+  ok('своя запись подписана, но в «Записи коллег» не попадает', await A.p.evaluate(() => D.filter((e) => e.id === 8001)[0].by === 'Фермер Ахмет') && !/своя запись|Фермер Ахмет/.test(await A.p.textContent('#hTeam')));
+  await A.p.evaluate(() => tab('D')); ok('в дневнике видно, кто сделал запись', /автор: Агроном Ерлан/.test(await A.p.textContent('#dList')));
+  await sync(A); await sync(B);
+  ok('у агронома подпись фермера тоже на месте', await B.p.evaluate(() => (D.filter((e) => e.id === 8001)[0] || {}).by === 'Фермер Ахмет'));
+
+  // Только просмотр: отдельный код для банка, страховой или наблюдателя
+  await A.p.evaluate(() => tab('X', 'mFarm')); await A.p.waitForSelector('#syShow'); await A.p.click('#syShow'); await A.p.waitForFunction(() => /^[0-9A-Z]{4}-/.test(document.getElementById('syViewT').textContent), null, { timeout: 5000 });
+  const vcode = (await A.p.textContent('#syViewT')).trim();
+  ok('у владельца два разных кода: для работы и только для просмотра', /^([0-9A-HJKMNP-TV-Z]{4}-){4}[0-9A-HJKMNP-TV-Z]{4}$/.test(vcode) && vcode !== code && (await A.p.textContent('#syCodeT')).trim() === code);
+  const V = await device('V'); await V.p.goto(APP + '#view=' + vcode); await V.p.waitForSelector('#dlg:not(.hidden)');
+  ok('ссылка просмотра предупреждает о режиме', /только просмотр/.test(await V.p.textContent('#dlgT')));
+  await Promise.all([V.p.waitForEvent('load'), V.p.click('#dlgOk')]); await V.p.waitForFunction(() => typeof D != 'undefined' && D.length > 0, null, { timeout: 10000 });
+  await V.p.evaluate(() => tab('D')); await V.p.waitForTimeout(900);
+  ok('наблюдатель видит записи, в шапке «только просмотр», кнопки «+» нет', await ids(V) === await ids(A) && /только просмотр/.test(await V.p.textContent('#farmBar')) && !(await V.p.isVisible('#navAdd')) && await V.p.evaluate(() => syncMeta(FARMS.cur).ro === 1));
+  const before = farms()[0].data; await V.p.evaluate(() => { D.push({ id: 7777, f: 'Поле 1', d: '2026-11-14', o: 'Осмотр поля', cr: '', c: 0, y: 0, p: '', n: 'правка наблюдателя' }); D = D.filter((e) => e.id !== 1001); save(); AR['Чужое поле'] = 5; saveAR(); });
+  await sync(V); await V.p.waitForTimeout(200);
+  ok('правки наблюдателя не уходят на сервер и откатываются на его телефоне', farms()[0].data === before && !log.some((x) => /^V put/.test(x)) && await ids(V) === await ids(A) && !(await V.p.evaluate(() => 'Чужое поле' in AR)) && /только для просмотра/.test(await V.p.textContent('#toastT')), [await ids(V), await V.p.textContent('#toastT')]);
+  await A.p.evaluate(() => { D.push({ id: 6001, f: 'Поле 1', d: '2026-11-14', o: 'Осмотр поля', cr: '', c: 0, y: 0, p: '', n: 'для наблюдателя' }); save(); }); await sync(A); await sync(V);
+  ok('новые записи владельца доходят до наблюдателя', (await ids(V)).includes('6001'));
+  const W = await device('W'); await W.p.goto(APP); await W.p.waitForTimeout(400); await W.p.evaluate(() => tab('X', 'mFarm')); await W.p.waitForSelector('#syJoin'); await W.p.fill('#syCode', vcode);
+  await Promise.all([W.p.waitForEvent('load'), W.p.click('#syJoin')]); await W.p.waitForFunction(() => typeof D != 'undefined' && D.length > 0, null, { timeout: 10000 });
+  ok('код просмотра, введённый вручную, сам распознаётся как «только просмотр»', await W.p.evaluate(() => syncMeta(FARMS.cur).ro === 1) && await ids(W) === await ids(A));
+  const up = await W.p.evaluate((c) => syncJoin(c, 'w').then((r) => r.already && syncMeta(FARMS.cur).ro === 0), code);
+  ok('наблюдатель, получивший код для работы, становится полноправным участником', up === true);
+
+  // Третий телефон: своё хозяйство уже есть — общее добавляется отдельным; неверный код
+  const C = await device('C'); await C.p.goto(APP); await C.p.waitForTimeout(400);
+  await C.p.evaluate(() => { D.push({ id: 9001, f: 'Своё поле', d: '2026-06-01', o: 'Осмотр поля', cr: '', c: 0, y: 0, p: '', n: '' }); save(); tab('X', 'mFarm'); }); await C.p.waitForSelector('#syJoin');
+  await C.p.fill('#syCode', 'ABCD-EFGH-JKMN-PQRS-TVWX'); await C.p.click('#syJoin'); await C.p.waitForFunction(() => /не найдено/.test(document.getElementById('toastT').textContent), null, { timeout: 10000 }).catch(() => {});
+  ok('неверный код: понятное сообщение, ничего не подключено', /не найдено/.test(await C.p.textContent('#toastT')) && await C.p.evaluate(() => FARMS.list.length === 1 && !syncMeta(FARMS.cur)));
+  await C.p.fill('#syCode', 'abc'); await C.p.click('#syJoin'); ok('неполный код отклоняется без запроса к серверу', /20 знаков/.test(await C.p.textContent('#toastT')));
+  await C.p.fill('#syCode', code.toLowerCase().replace(/-/g, ' ')); await Promise.all([C.p.waitForEvent('load'), C.p.click('#syJoin')]); await C.p.waitForFunction(() => typeof D != 'undefined' && D.length > 1, null, { timeout: 10000 });
+  ok('на телефоне со своими записями общее хозяйство добавлено отдельным, свои записи целы', await C.p.evaluate(() => FARMS.list.length === 2 && farmName(FARMS.cur) === 'КХ «Береке-2»' && lsJ('agro_diary_v1', 'f1', []).length === 1 && !D.some((e) => e.id === 9001)) && await ids(C) === await ids(A));
+
+  // Отключение телефона и удаление общей копии
+  await B.p.evaluate(() => tab('X', 'mFarm')); await B.p.waitForSelector('#syOff'); await B.p.click('#syOff'); await B.p.click('#dlgOk'); await B.p.waitForTimeout(300);
+  await A.p.evaluate(() => { D.push({ id: 5001, f: 'Поле 1', d: '2026-11-13', o: 'Осмотр поля', cr: '', c: 0, y: 0, p: '', n: 'после отключения B' }); save(); }); await sync(A);
+  const bAfter = await B.p.evaluate(() => syncRun(FARMS.cur, true));
+  ok('отключённый телефон хранит свои записи, но новые не получает', bAfter && bAfter.off === true && !(await ids(B)).includes('5001') && (await ids(B)).includes('1001') && !(await B.p.evaluate(() => !!syncMeta(FARMS.cur))));
+  await A.p.evaluate(() => tab('X', 'mFarm')); await A.p.waitForSelector('#syDel'); await A.p.click('#syDel'); await A.p.click('#dlgOk'); await A.p.waitForFunction(() => !syncMeta(FARMS.cur), null, { timeout: 10000 });
+  F = farms(); ok('«Удалить общую копию»: на сервере пусто, записи на телефоне остались', F.length === 0 && (await ids(A)).includes('5001'));
+  const cGone = await C.p.evaluate(() => syncRun(FARMS.cur, true)); await C.p.evaluate(() => tab('X', 'mFarm')); await C.p.waitForTimeout(300);
+  ok('другой телефон видит, что копию удалили, и записи у него остались', cGone && cGone.err === 'gone' && /удалили с сервера/.test(await C.p.textContent('#mSync')) && (await C.p.evaluate(() => D.length)) > 3);
+
+  // Старый сервер без общей базы: раздел скрыт, приложение работает как раньше
+  const O = await device('O', { oldServer: true }); await O.p.goto(APP); await O.p.waitForTimeout(400); await O.p.evaluate(() => tab('X', 'mFarm')); await O.p.waitForTimeout(1200);
+  ok('со старым сервером раздел общей базы скрыт', !(await O.p.$('#syMake')) && !(await O.p.$('#syCode')) && (await O.p.textContent('#mSync')) === '');
+
+  const allErrs = [A, B, C, O, V, W].flatMap((d) => d.errs);
+  ok('ошибок на страницах нет', allErrs.length === 0, allErrs);
+  console.log('запросы к серверу:', log.length, '|', [...new Set(log.map((x) => x.split(' ').slice(1).join(' ')))].join(', '));
+  console.log(fails ? 'FAILED ' + fails : 'ALL OK'); await b.close(); web.close(); process.exit(fails ? 1 : 0);
+})().catch((e) => { console.error(e); process.exit(1); });
