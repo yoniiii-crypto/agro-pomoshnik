@@ -161,6 +161,18 @@ let fails = 0; const ok = (name, cond, extra) => { if (!cond) fails++; console.l
   await C.p.fill('#syCode', code.toLowerCase().replace(/-/g, ' ')); await Promise.all([C.p.waitForEvent('load'), C.p.click('#syJoin')]); await C.p.waitForFunction(() => typeof D != 'undefined' && D.length > 1, null, { timeout: 10000 });
   ok('на телефоне со своими записями общее хозяйство добавлено отдельным, свои записи целы', await C.p.evaluate(() => FARMS.list.length === 2 && farmName(FARMS.cur) === 'КХ «Береке-2»' && lsJ('agro_diary_v1', 'f1', []).length === 1 && !D.some((e) => e.id === 9001)) && await ids(C) === await ids(A));
 
+  // Кабинет консультанта: все хозяйства на «Сводке», новые записи коллег с прошлого раза
+  await C.p.evaluate(() => tab('H')); await C.p.waitForTimeout(200);
+  ok('у консультанта на «Сводке» карточка «Мои хозяйства» с обоими хозяйствами', /Мои хозяйства/.test(await C.p.textContent('#hFarms')) && /Хозяйств: 2/.test(await C.p.textContent('#hFarms')) && /КХ «Береке-2»/.test(await C.p.textContent('#hFarms')) && await C.p.isVisible('#hfSync'));
+  const sharedC = await C.p.evaluate(() => FARMS.cur);
+  await Promise.all([C.p.waitForEvent('load'), C.p.click('#hFarms [data-hfo="f1"]')]); await C.p.waitForFunction(() => typeof FARMS != 'undefined' && FARMS.cur === 'f1');
+  await A.p.evaluate(() => { D.push({ id: Date.now(), f: 'Поле 2', d: '2026-11-15', o: 'Осмотр поля', cr: '', c: 0, y: 0, p: '', n: 'для консультанта' }); save(); }); await sync(A);
+  await C.p.evaluate(() => tab('H')); await C.p.click('#hfSync'); await C.p.waitForFunction(() => /Обновлено общих хозяйств: 1/.test(document.getElementById('toastT').textContent), null, { timeout: 15000 }).catch(() => {});
+  const hf = await C.p.textContent('#hFarms');
+  ok('«Обновить» подтянуло общее хозяйство, хотя открыто другое, и показало новую запись коллеги', /новых записей: 1/.test(hf) && await C.p.evaluate((f) => lsJ('agro_diary_v1', f, []).some((e) => e.n === 'для консультанта'), sharedC), hf);
+  await Promise.all([C.p.waitForEvent('load'), C.p.click('#hFarms [data-hfo="' + sharedC + '"]')]); await C.p.waitForFunction((f) => typeof FARMS != 'undefined' && FARMS.cur === f, sharedC);
+  await C.p.evaluate(() => tab('H')); ok('открытое хозяйство больше не считает записи новыми', !/новых записей/.test(await C.p.textContent('#hFarms')));
+
   // Отключение телефона и удаление общей копии
   await B.p.evaluate(() => tab('X', 'mFarm')); await B.p.waitForSelector('#syOff'); await B.p.click('#syOff'); await B.p.click('#dlgOk'); await B.p.waitForTimeout(300);
   await A.p.evaluate(() => { D.push({ id: 5001, f: 'Поле 1', d: '2026-11-13', o: 'Осмотр поля', cr: '', c: 0, y: 0, p: '', n: 'после отключения B' }); save(); }); await sync(A);
