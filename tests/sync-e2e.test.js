@@ -110,6 +110,9 @@ let fails = 0; const ok = (name, cond, extra) => { if (!cond) fails++; console.l
   const team = await A.p.textContent('#hTeam'), htask = await A.p.textContent('#hTask');
   ok('у фермера на Сводке: запись агронома с его именем и задача с пометкой «вам»', (await A.p.evaluate(() => D.length)) === nA + 1 && /Агроном Ерлан/.test(team) && /Задач для вас: 1/.test(team) && /кому: фермер ахмет/.test(htask) && /вам/.test(htask) && /автор: Агроном Ерлан/.test(htask), [team, htask]);
   await A.p.evaluate(() => { D.push({ id: 8001, f: 'Поле 1', d: '2026-11-14', o: 'Осмотр поля', cr: '', c: 0, y: 0, p: '', n: 'своя запись' }); save(); tab('H'); }); await A.p.waitForTimeout(200);
+  ok('фермеру пришло сообщение о новой задаче от агронома', /Новая задача для вас: «Проверить влагу на Поле 2» \(Агроном Ерлан\)/.test(await A.p.textContent('#toastT')), await A.p.textContent('#toastT'));
+  await A.p.click('#hTask [data-done="' + (await A.p.evaluate(() => TK.filter((t) => t.n === 'Проверить влагу на Поле 2')[0].id)) + '"]'); await A.p.waitForTimeout(300); await sync(A); await B.p.evaluate(() => tab('K')); await sync(B);
+  ok('агроному пришло сообщение, что фермер выполнил задачу, в плане видно кто', /Задача выполнена: «Проверить влагу на Поле 2» \(Фермер Ахмет\)/.test(await B.p.textContent('#toastT')) && /✓ Фермер Ахмет/.test(await B.p.textContent('#calL')), [await B.p.textContent('#toastT')]);
   ok('своя запись подписана, но в «Записи коллег» не попадает', await A.p.evaluate(() => D.filter((e) => e.id === 8001)[0].by === 'Фермер Ахмет') && !/своя запись|Фермер Ахмет/.test(await A.p.textContent('#hTeam')));
   await A.p.evaluate(() => tab('D')); ok('в дневнике видно, кто сделал запись', /автор: Агроном Ерлан/.test(await A.p.textContent('#dList')));
   await sync(A); await sync(B);
