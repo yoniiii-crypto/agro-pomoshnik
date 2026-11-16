@@ -1,0 +1,44 @@
+// Склад и продажи зерна, цены продаж в экономике, семена со склада.
+// Нужен Playwright. Запуск: NODE_PATH=$(npm root -g) node tests/ui-stock.test.js
+const { chromium } = require('playwright'); const fs = require('fs'), http = require('http'), path = require('path');
+const ROOT = path.resolve(__dirname, '..');
+const web = http.createServer((rq, rs) => { const f = path.join(ROOT, decodeURIComponent(new URL(rq.url, 'http://x').pathname)); if (!f.startsWith(ROOT + '/') || !fs.existsSync(f)) { rs.writeHead(404); return rs.end(); } rs.writeHead(200, { 'Content-Type': f.endsWith('.html') ? 'text/html; charset=utf-8' : 'text/javascript' }); fs.createReadStream(f).pipe(rs); });
+let fails = 0; const ok = (n, c, x) => { if (!c) fails++; console.log((c ? 'ok  ' : 'FAIL') + ' ' + n + (!c && x !== undefined ? ' | ' + JSON.stringify(x) : '')); };
+(async () => {
+  await new Promise((r) => web.listen(0, '127.0.0.1', r)); const APP = 'http://127.0.0.1:' + web.address().port + '/index.html';
+  const b = await chromium.launch(); const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, serviceWorkers: 'block' });
+  await ctx.route(/open-meteo|workers\.dev/, (r) => r.abort());
+  await ctx.addInitScript(() => { if (localStorage.getItem('agro_onb_v1') == null) localStorage.setItem('agro_onb_v1', '1'); window.print = () => {}; });
+  const p = await ctx.newPage(); const errs = []; p.on('pageerror', (e) => errs.push(e.message));
+  await p.goto(APP + '?demo=1'); await p.waitForFunction(() => typeof FARMS != 'undefined' && FARMS.cur === 'demo' && D.length > 10, null, { timeout: 15000 });
+  await p.waitForTimeout(2000); await p.evaluate(() => { if (TOUR && TOUR.on) tourEnd(); tab('L'); }); await p.click('#lSeg [data-ls="s"]'); await p.waitForTimeout(150);
+  const st0 = await p.evaluate(() => { const L = stockOf(STY); return { y: STY, L: L.map((o) => [o.k, Math.round(o.h), Math.round(o.left)]) }; }); console.log(JSON.stringify(st0));
+  ok('склад: собрано по культурам за последний урожай', st0.L.length > 0 && st0.L.every((o) => o[1] > 0 && o[1] === o[2]) && /Склад и продажи/.test(await p.textContent('#lStock')));
+  const k0 = st0.L[0][0];
+  await p.selectOption('#stK', k0); await p.fill('#stT', '100'); await p.fill('#stP', '90000'); await p.fill('#stB', 'Элеватор Карасу'); await p.click('#stAdd'); await p.waitForTimeout(100);
+  ok('продажа записана, выручка и остаток пересчитаны', /Продажа записана: 9,0 млн ₸/.test(await p.textContent('#toastT')) && await p.evaluate((k) => { const o = stockOf(STY).find((x) => x.k === k); return o.sold === 100 && o.rev === 9e6 && o.avg === 90000; }, k0) && /9,0 млн ₸/.test(await p.textContent('#lStock')));
+  await p.selectOption('#stK', k0); await p.selectOption('#stU', '1'); ok('для своих нужд цена и покупатель скрыты', !(await p.isVisible('#stP')) && !(await p.isVisible('#stB')));
+  await p.fill('#stT', '20'); await p.click('#stAdd'); await p.waitForTimeout(100);
+  const o1 = await p.evaluate((k) => { const o = stockOf(STY).find((x) => x.k === k); return [o.h, o.sold, o.use, o.left]; }, k0);
+  ok('свои нужды уменьшают остаток, но не выручку', o1[1] === 100 && o1[2] === 20 && Math.abs(o1[3] - (o1[0] - 120)) < 0.01, o1);
+  const offer = await p.evaluate(() => stockText(STY)); ok('предложение покупателям с остатками', new RegExp('Продаю зерно урожая ' + st0.y).test(offer) && offer.includes(k0 + ': ' + (o1[3] >= 100 ? Math.round(o1[3]).toLocaleString('ru-RU') : String(o1[3]).replace('.', ','))), offer);
+  await p.fill('#stT', '5'); await p.selectOption('#stU', '0'); await p.click('#stAdd'); ok('продажа без цены не записывается', /цену за тонну/.test(await p.textContent('#toastT')) && await p.evaluate(() => SALES.length === 2));
+  const id = await p.evaluate(() => SALES[0].id); await p.click('[data-sld="' + id + '"]'); ok('удаление с возвратом', await p.evaluate(() => SALES.length === 1)); await p.click('#toastB'); ok('«Вернуть» возвращает запись', await p.evaluate(() => SALES.length === 2));
+  await (await p.$('#lStock')).screenshot({ path: require('os').tmpdir() + '/shot_stock.png' });
+  const [dl] = await Promise.all([p.waitForEvent('download'), p.click('#stCsv')]); const csv = fs.readFileSync(await dl.path(), 'utf8').trim().split(/\r\n/);
+  ok('продажи выгружаются в Excel', csv.length === 3 && /Дата;Урожай;Культура;Что;Тонн/.test(csv[0]) && csv.some((r) => /;продажа;100;90000;9000000;Элеватор Карасу/.test(r)) && csv.some((r) => /;свои нужды;20;/.test(r)), csv);
+  await p.evaluate(() => { segGo('hSeg', 's'); tab('H'); }); await p.waitForTimeout(150);
+  ok('на «Сводке → Сезон» видно, на сколько продано', /продано на 9,0/.test(await p.textContent('#hKpi')), await p.textContent('#hKpi'));
+  await p.evaluate(() => { tab('L'); lSeg('s'); renderFields(); });
+  await p.click('#lSeg [data-ls="e"]'); await p.waitForTimeout(100); const eco = await p.textContent('#lEco');
+  ok('в экономике — подсказка с ценой продаж', new RegExp(k0 + ' — 90\\s000 ₸/т').test(eco), eco.slice(0, 300));
+  await p.click('#ecoSP'); ok('«Подставить цены продаж» меняет цену в расчёте', await p.evaluate((k) => PR[k] === 90000, k0) && !(await p.$('#ecoSP')));
+  await p.evaluate(() => { tab('K'); kSeg('b'); }); await p.waitForTimeout(150); const cn = await p.textContent('#calN');
+  ok('в закупках семян — напоминание про зерно на складе', /На складе урожая \d{4}: [\d\s,]+ т — часть можно оставить на семена/.test(cn), cn.slice(0, 400));
+  await p.evaluate(() => { tab('L'); lSeg('s'); });
+  await p.evaluate(() => { PLAN = 'farm'; report('bank'); }); const bt = await p.textContent('#printArea');
+  ok('в профиле для банка — продажи урожая', /Продажи урожая/.test(bt) && /90\s000/.test(bt), bt.slice(bt.indexOf('Продажи'), bt.indexOf('Продажи') + 200));
+  await p.reload(); await p.waitForTimeout(2200); await p.evaluate(() => { if (TOUR && TOUR.on) tourEnd(); }); ok('продажи сохраняются после перезагрузки', await p.evaluate(() => SALES.length === 2 && JSON.parse(localStorage.getItem(FK('agro_sales_v1'))).length === 2));
+  ok('ошибок нет', errs.length === 0, errs);
+  console.log(fails ? 'FAILED ' + fails : 'ALL OK'); await b.close(); web.close();
+})();
