@@ -1,4 +1,4 @@
-# Агро-помощник 7.0
+# Агро-помощник 7.1
 
 **1 место на AI Startup Building Hackathon 2026** (Агротехнопарк Seifullin University, Астана, 13 ноября 2026, трек Smart Agro).
 
