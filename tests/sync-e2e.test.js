@@ -118,6 +118,21 @@ let fails = 0; const ok = (name, cond, extra) => { if (!cond) fails++; console.l
   await sync(A); await sync(B);
   ok('у агронома подпись фермера тоже на месте', await B.p.evaluate(() => (D.filter((e) => e.id === 8001)[0] || {}).by === 'Фермер Ахмет'));
 
+  // Обсуждение записи: агроном комментирует, фермер получает сообщение и отвечает; одновременные комментарии не теряются
+  await B.p.evaluate(() => tab('D')); await B.p.click('[data-cmo="1001"]'); await B.p.waitForSelector('[data-cmi="1001"]');
+  await B.p.fill('[data-cmi="1001"]', 'Похоже на септориоз, пришлите фото листа'); await B.p.click('[data-cms="1001"]'); await B.p.waitForTimeout(150);
+  ok('комментарий агронома сохранён с его именем', await B.p.evaluate(() => CM.length === 1 && CM[0].by === 'Агроном Ерлан' && CM[0].e === '1001'));
+  await sync(B); await A.p.evaluate(() => tab('D')); await sync(A);
+  ok('фермеру пришло сообщение о комментарии, у записи счётчик', /Новый комментарий \(Агроном Ерлан\): «Похоже на септориоз/.test(await A.p.textContent('#toastT')) && /Обсудить \(1\)/.test(await A.p.textContent('[data-cmo="1001"]')), await A.p.textContent('#toastT'));
+  await A.p.click('#toastB'); await A.p.waitForSelector('[data-cmi="1001"]'); await A.p.fill('[data-cmi="1001"]', 'Фото пришлю вечером'); await A.p.press('[data-cmi="1001"]', 'Enter'); await A.p.waitForTimeout(150);
+  await sync(A); await sync(B);
+  ok('агроном видит ответ фермера в открытом обсуждении', /Фото пришлю вечером/.test(await B.p.textContent('#dList')) && /Новый комментарий \(Фермер Ахмет\)/.test(await B.p.textContent('#toastT')));
+  await A.p.evaluate(() => { CM.push({ id: 'cA', e: '1001', by: 'Фермер Ахмет', t: 'одновременно A', d: Date.now() }); saveCM(); });
+  await B.p.evaluate(() => { CM.push({ id: 'cB', e: '1001', by: 'Агроном Ерлан', t: 'одновременно B', d: Date.now() }); saveCM(); });
+  await sync(A); await sync(B); await sync(A);
+  ok('комментарии, написанные одновременно, сохранились оба', await A.p.evaluate(() => CM.length === 4) && await B.p.evaluate(() => CM.length === 4));
+  await A.p.evaluate(() => tab('H')); await A.p.waitForTimeout(150); ok('на «Сводке» фермера — комментарии коллег', /Комментарии коллег/.test(await A.p.textContent('#hTeam')) && /одновременно B/.test(await A.p.textContent('#hTeam')));
+
   // Общие фото: снимок с телефона A шифруется, уходит на сервер и появляется у B
   const pid = await A.p.evaluate(() => new Promise((res) => { const c = document.createElement('canvas'); c.width = 240; c.height = 160; const g = c.getContext('2d'); g.fillStyle = '#3a7'; g.fillRect(0, 0, 240, 160); g.fillStyle = '#c33'; g.fillRect(40, 30, 60, 60);
     c.toBlob((bl) => { const id = 'p' + Date.now().toString(36) + 'te'; pPut(id, bl).then(() => { D.push({ id: 9100, f: 'Поле 1', d: '2026-11-15', o: 'Осмотр поля', cr: '', c: 0, y: 0, p: '', n: 'фото ржавчины', ph: [id] }); save(); res(id); }); }, 'image/jpeg', 0.8); }));
@@ -143,6 +158,8 @@ let fails = 0; const ok = (name, cond, extra) => { if (!cond) fails++; console.l
   ok('правки наблюдателя не уходят на сервер и откатываются на его телефоне', farms()[0].data === before && !log.some((x) => /^V put/.test(x)) && await ids(V) === await ids(A) && !(await V.p.evaluate(() => 'Чужое поле' in AR)) && /только для просмотра/.test(await V.p.textContent('#toastT')), [await ids(V), await V.p.textContent('#toastT')]);
   await A.p.evaluate(() => { D.push({ id: 6001, f: 'Поле 1', d: '2026-11-14', o: 'Осмотр поля', cr: '', c: 0, y: 0, p: '', n: 'для наблюдателя' }); save(); }); await sync(A); await sync(V);
   ok('новые записи владельца доходят до наблюдателя', (await ids(V)).includes('6001'));
+  await V.p.evaluate(() => tab('D')); await V.p.click('[data-cmo="1001"]'); await V.p.waitForTimeout(150);
+  ok('наблюдатель читает обсуждение, но написать в нём не может', /Похоже на септориоз/.test(await V.p.textContent('#dList')) && !(await V.p.$('[data-cmi="1001"]')));
   ok('наблюдатель видит фото, но сам фото не отправляет', (await V.p.evaluate((id) => pGetAny(id).then((x) => x && x.size), pid)) === sizeA && !log.some((x) => /^V (pput|pdel)/.test(x)));
   // фото удалённой записи убирается с сервера при суточной уборке
   await A.p.evaluate(() => { D = D.filter((e) => e.id !== 9100); save(); }); await sync(A);

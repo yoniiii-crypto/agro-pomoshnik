@@ -4,7 +4,8 @@ import { readFileSync } from 'node:fs';
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const a0 = html.indexOf('/* SYNC-CORE-BEGIN'), a1 = html.indexOf('/* SYNC-CORE-END */');
 if (a0 < 0 || a1 < 0) { console.log('FAIL: ядро не найдено в index.html'); process.exit(1); }
-const C = new Function(html.slice(a0, a1) + ';return {syncStamp,syncMerge,sCanon,syncAdopt,syncOut,syncNorm,syncFmt,sFlat,sUnflat,sHash,SYNC_KEYS,SYNC_TOMBS}')();
+const EXP = ';return {syncStamp,syncMerge,sCanon,syncAdopt,syncOut,syncNorm,syncFmt,sFlat,sUnflat,sHash,sWithU,SYNC_KEYS,SYNC_TOMBS}';
+const C = new Function(html.slice(a0, a1) + EXP)();
 let fails = 0; const ok = (name, cond, extra) => { if (!cond) fails++; console.log((cond ? 'ok  ' : 'FAIL') + ' ' + name + (extra !== undefined && !cond ? ' | ' + JSON.stringify(extra) : '')); };
 const copy = (x) => JSON.parse(JSON.stringify(x));
 const D = 'agro_diary_v1', TK = 'agro_tasks_v1', AR = 'agro_fields_v1', PR = 'agro_prices_v1', NM = 'agro_norms_v1', RG = 'agro_region_v1', LOC = 'agro_loc_v1';
@@ -126,5 +127,29 @@ ok('код: дефисы, пробелы, строчные буквы и пох�
 ok('код: неверная длина и чужие знаки отклоняются', C.syncNorm('ABCD') === '' && C.syncNorm('ABCD-EFGH-JKMN-PQRS-TVW!') === '' && C.syncNorm('ABCD-EFGH-JKMN-PQRS-TVWU') === '');
 ok('код показывается группами по четыре', C.syncFmt('ABCDEFGHJKMNPQRSTVWX') === 'ABCD-EFGH-JKMN-PQRS-TVWX');
 ok('вложенный словарь разворачивается и собирается обратно', JSON.stringify(C.sUnflat(C.sFlat({ y: { a: 1, b: 2 }, r: {}, z: 5 }, 2))) === JSON.stringify({ y: { a: 1, b: 2 }, z: 5 }));
+// Совместимость с будущими версиями: новая версия (N) добавила свои данные — ещё один список и значение; старая (O) их не знает, но не теряет
+{ const src = html.slice(a0, a1);
+  const src2 = src.replace("var SYNC_LISTS=[", "var SYNC_LISTS=['agro_xlist_v1',").replace("var SYNC_VALS={agro_region_v1:'j',agro_loc_v1:'s'};", "var SYNC_VALS={agro_region_v1:'j',agro_loc_v1:'s',agro_future_v1:'s'};");
+  ok('модель новой версии собрана', src2 !== src && src2.includes('agro_xlist_v1') && src2.includes('agro_future_v1'));
+  const C2 = new Function(src2 + EXP)(), CM = 'agro_xlist_v1', FV = 'agro_future_v1';
+  const step = (K, d, srv, o = {}) => { T += 3; const st = K.syncStamp(d.raw, d.name, d.meta, now(d)); K.sWithU(st.rep, d.meta); const R = copy(srv.blob);
+    if (o.quick) { srv.blob = copy(st.rep); K.syncAdopt(d.meta, st.rep); return { toR: true, toL: false }; } /* быстрая отправка: на сервере та же версия, что видел телефон */
+    const M = K.syncMerge(st.rep, R), toR = K.sCanon(M, true) !== K.sCanon(R, true), toL = st.fix || K.sCanon(M, false) !== K.sCanon(st.rep, false);
+    if (toR) srv.blob = copy(M); if (toL) { Object.assign(d.raw, K.syncOut(M)); d.name = M.n[0]; } K.syncAdopt(d.meta, M); return { toR, toL }; };
+  const N = dev('КХ Новое'), O = dev('Старое'), S = {}, cms = () => (S.blob.l[CM] ? S.blob.l[CM].i.map((c) => c.t).sort().join('|') : '');
+  put(N, D, [{ id: 1, f: 'Поле 1', o: 'Осмотр' }]); put(N, CM, [{ id: 11, e: 1, t: 'это септориоз' }]); N.raw[FV] = 'v1';
+  { const st = C2.syncStamp(N.raw, N.name, N.meta, now(N)); S.blob = copy(st.rep); C2.syncAdopt(N.meta, st.rep); }
+  { const R = copy(S.blob); Object.assign(O.raw, C.syncOut(R)); O.name = R.n[0]; C.syncAdopt(O.meta, R); }
+  ok('старая версия хранит чужие данные в метках, а не в памяти браузера', !(CM in O.raw) && !(FV in O.raw) && !!O.meta.u && O.meta.u.l[CM].i.length === 1 && O.meta.u.x[FV][0] === 'v1');
+  add(O, { id: 2, f: 'Поле 2', o: 'Сев' }); step(C, O, S, { quick: true });
+  ok('быстрая отправка старой версии не стирает данные новой', cms() === 'это септориоз' && S.blob.x[FV][0] === 'v1' && S.blob.l[D].i.length === 2);
+  add(N, { id: 12, e: 1, t: 'обработать фунгицидом' }, CM); N.raw[FV] = 'v2'; T += 7; step(C2, N, S);
+  edit(O, 2, (e) => { e.c = 500; }); step(C, O, S);
+  ok('слияние в старой версии сохраняет новые комментарии и значение', cms() === 'обработать фунгицидом|это септориоз' && S.blob.x[FV][0] === 'v2' && S.blob.l[D].i.filter((e) => e.c === 500).length === 1);
+  const idle = step(C, O, S); ok('без правок старая версия ничего не отправляет и не перезаписывает', !idle.toR && !idle.toL, idle);
+  del(N, 11, CM); step(C2, N, S); step(C, O, S); edit(O, 1, (e) => { e.n = 'смотрели вместе'; }); step(C, O, S, { quick: true });
+  ok('удаление комментария в новой версии не воскрешает старая', cms() === 'обработать фунгицидом');
+  step(C2, N, S); ok('новая версия получила правки старой, у обеих одни и те же записи', ids(N) === ids(O) && get(N, D, []).some((e) => e.n === 'смотрели вместе') && get(N, CM, []).length === 1 && N.raw[FV] === 'v2');
+}
 console.log(fails ? 'FAILED ' + fails : 'ALL OK');
 process.exit(fails ? 1 : 0);
