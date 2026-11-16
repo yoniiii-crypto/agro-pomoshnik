@@ -135,6 +135,10 @@ let fails = 0; const ok = (name, cond, extra) => { if (!cond) fails++; console.l
   ok('комментарии, написанные одновременно, сохранились оба', await A.p.evaluate(() => CM.length === 4) && await B.p.evaluate(() => CM.length === 4));
   await A.p.evaluate(() => tab('H')); await A.p.waitForTimeout(150); ok('на «Сводке» фермера — комментарии коллег', /Комментарии коллег/.test(await A.p.textContent('#hTeam')) && /одновременно B/.test(await A.p.textContent('#hTeam')));
 
+  // Склад: продажа, записанная агрономом, видна у фермера
+  await B.p.evaluate(() => { SALES.push({ id: 'sB1', y: 2026, k: 'ячмень', t: 50, p: 80000, d: '2026-11-15', b: 'Элеватор' }); saveSL(); }); await sync(B); await A.p.evaluate(() => tab('L')); await sync(A);
+  ok('продажа зерна с одного телефона видна на другом', await A.p.evaluate(() => SALES.some((x) => x.id === 'sB1' && x.t === 50 && x.p === 80000)));
+
   // Общие фото: снимок с телефона A шифруется, уходит на сервер и появляется у B
   const pid = await A.p.evaluate(() => new Promise((res) => { const c = document.createElement('canvas'); c.width = 240; c.height = 160; const g = c.getContext('2d'); g.fillStyle = '#3a7'; g.fillRect(0, 0, 240, 160); g.fillStyle = '#c33'; g.fillRect(40, 30, 60, 60);
     c.toBlob((bl) => { const id = 'p' + Date.now().toString(36) + 'te'; pPut(id, bl).then(() => { D.push({ id: 9100, f: 'Поле 1', d: '2026-11-15', o: 'Осмотр поля', cr: '', c: 0, y: 0, p: '', n: 'фото ржавчины', ph: [id] }); save(); res(id); }); }, 'image/jpeg', 0.8); }));
