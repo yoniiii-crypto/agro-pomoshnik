@@ -125,8 +125,10 @@ let fails = 0; const ok = (name, cond, extra) => { if (!cond) fails++; console.l
   await sync(B); await A.p.evaluate(() => tab('D')); await sync(A);
   ok('фермеру пришло сообщение о комментарии, у записи счётчик', /Новый комментарий \(Агроном Ерлан\): «Похоже на септориоз/.test(await A.p.textContent('#toastT')) && /Обсудить \(1\)/.test(await A.p.textContent('[data-cmo="1001"]')), await A.p.textContent('#toastT'));
   await A.p.click('#toastB'); await A.p.waitForSelector('[data-cmi="1001"]'); await A.p.fill('[data-cmi="1001"]', 'Фото пришлю вечером'); await A.p.press('[data-cmi="1001"]', 'Enter'); await A.p.waitForTimeout(150);
+  await B.p.click('[data-cmi="1001"]'); await B.p.type('[data-cmi="1001"]', 'черновик агронома');
   await sync(A); await sync(B);
-  ok('агроном видит ответ фермера в открытом обсуждении', /Фото пришлю вечером/.test(await B.p.textContent('#dList')) && /Новый комментарий \(Фермер Ахмет\)/.test(await B.p.textContent('#toastT')));
+  ok('агроном видит ответ фермера сразу, хотя набирает текст: набранное не пропало', /Фото пришлю вечером/.test(await B.p.textContent('[data-cml="1001"]')) && await B.p.inputValue('[data-cmi="1001"]') === 'черновик агронома' && await B.p.evaluate(() => document.activeElement && document.activeElement.dataset.cmi === '1001') && /Новый комментарий \(Фермер Ахмет\)/.test(await B.p.textContent('#toastT')) && /Обсудить \(2\)/.test(await B.p.textContent('[data-cmo="1001"]')));
+  await B.p.fill('[data-cmi="1001"]', ''); await B.p.evaluate(() => { delete CMDRAFT['1001']; document.activeElement.blur(); });
   await A.p.evaluate(() => { CM.push({ id: 'cA', e: '1001', by: 'Фермер Ахмет', t: 'одновременно A', d: Date.now() }); saveCM(); });
   await B.p.evaluate(() => { CM.push({ id: 'cB', e: '1001', by: 'Агроном Ерлан', t: 'одновременно B', d: Date.now() }); saveCM(); });
   await sync(A); await sync(B); await sync(A);
