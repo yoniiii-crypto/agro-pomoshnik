@@ -27,6 +27,9 @@ let fails = 0; const ok = (n, c, x) => { if (!c) fails++; console.log((c ? 'ok  
   await p.evaluate(() => { tab('L'); }); await p.waitForTimeout(300);
   const lc = await p.evaluate(() => ({ cards: document.getElementById('lCards').textContent, rot: document.getElementById('lRot').textContent }));
   ok('вкладка «Алқаптар»: число полей, культуры и таблица севооборота по-казахски', /\d+ алқап/.test(lc.cards) && /жаздық бидай/.test(lc.cards) && /Келесі:/.test(lc.cards) && !/яровая пшеница|полей/.test(lc.cards) && /Алқап/.test(lc.rot) && !/яровая пшеница|По записям/.test(lc.rot), lc);
+  await p.evaluate(() => { tab('D'); }); await p.waitForTimeout(300);
+  const dj = await p.evaluate(() => { const L = document.getElementById('dList'); return { t: L ? L.textContent : '', sum: (document.getElementById('dSum') || {}).textContent || '' }; });
+  ok('журнал: «жиналды», «Өзгерту», «Жою» и итоги по сезонам по-казахски', /жиналды \d/.test(dj.t) && /Өзгерту/.test(dj.t) && /Жою/.test(dj.t) && !/собрано \d|Изменить|Удалить/.test(dj.t) && !/суммируются внутри года/.test(dj.sum), { t: dj.t.slice(0, 300), sum: dj.sum.slice(-200) });
   await p.evaluate(() => { document.getElementById('lRu').onclick(); tab('H'); segGo('hSeg', 's'); }); await p.waitForTimeout(300);
   const ru = await p.evaluate(() => ({ bar: document.getElementById('farmBar').textContent, crop: document.getElementById('hCrop').textContent, saved: localStorage.getItem('agro_lang_v1') }));
   ok('переключение на русский возвращает русские названия', /Демо-хозяйство, Костанайская обл\./.test(ru.bar) && /яровая пшеница/.test(ru.crop) && ru.saved === 'ru', ru);
