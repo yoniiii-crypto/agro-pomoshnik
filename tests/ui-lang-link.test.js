@@ -22,7 +22,12 @@ let fails = 0; const ok = (n, c, x) => { if (!c) fails++; console.log((c ? 'ok  
   ok('демо-хозяйство и область по-казахски', /Демо-шаруашылық, Қостанай облысы/.test(st.bar), st.bar);
   ok('культуры на «Сводке» по-казахски', /жаздық бидай/.test(st.crop) && /арпа/.test(st.crop) && !/яровая пшеница/.test(st.crop), st.crop);
   ok('данные не тронуты: имя хозяйства и культуры в записях по-русски', st.name === 'Демо-хозяйство, Костанайская обл.' && st.cr > 0, st);
-  await p.evaluate(() => document.getElementById('lRu').onclick()); await p.waitForTimeout(200);
+  const chk = await p.evaluate(() => runChecks(ctxOf ? ctxOf() : { D: D, AR: AR }).filter((c) => c.src === 'rot').map((c) => c.t + ' ' + c.x).join(' | '));
+  ok('предупреждения о севообороте по-казахски', /монокультура/.test(chk) && /қатарынан үш жыл|жылдан кейін қайта егілді/.test(chk) && !/три года подряд|Культура вернулась/.test(chk), chk);
+  await p.evaluate(() => { tab('L'); }); await p.waitForTimeout(300);
+  const lc = await p.evaluate(() => ({ cards: document.getElementById('lCards').textContent, rot: document.getElementById('lRot').textContent }));
+  ok('вкладка «Алқаптар»: число полей, культуры и таблица севооборота по-казахски', /\d+ алқап/.test(lc.cards) && /жаздық бидай/.test(lc.cards) && /Келесі:/.test(lc.cards) && !/яровая пшеница|полей/.test(lc.cards) && /Алқап/.test(lc.rot) && !/яровая пшеница|По записям/.test(lc.rot), lc);
+  await p.evaluate(() => { document.getElementById('lRu').onclick(); tab('H'); segGo('hSeg', 's'); }); await p.waitForTimeout(300);
   const ru = await p.evaluate(() => ({ bar: document.getElementById('farmBar').textContent, crop: document.getElementById('hCrop').textContent, saved: localStorage.getItem('agro_lang_v1') }));
   ok('переключение на русский возвращает русские названия', /Демо-хозяйство, Костанайская обл\./.test(ru.bar) && /яровая пшеница/.test(ru.crop) && ru.saved === 'ru', ru);
   const cr = await p.evaluate(() => {
