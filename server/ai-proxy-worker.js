@@ -1,4 +1,4 @@
-// Сервер «Агро-помощника» (Cloudflare Worker): ИИ-посредник и общая база хозяйств.
+// Сервер Alqap (Cloudflare Worker): ИИ-посредник, общая база хозяйств и «Агрономы онлайн».
 //
 // 1. ИИ-посредник. Ключ Gemini нельзя класть в код сайта — он публичный. Ключ
 //    хранится только в настройках этого сервера (секрет GEMINI_KEY), а сайт
@@ -23,6 +23,11 @@
 // имя agro. Затем в этом воркере: Settings → Bindings → Add → D1 database,
 // Variable name AGRO_DB, выбрать базу agro → Deploy. Таблицу сервер создаст сам.
 // Без этой привязки ИИ работает как раньше, а общая база в приложении скрыта.
+//
+// «Агрономы онлайн» используют ту же базу AGRO_DB. Чтобы проверять анкеты и отмечать
+// оплату, добавьте Secret AGRO_ADMIN — длинный пароль администратора (его вводят в
+// приложении: «Агрономы онлайн» → «Для администратора»). Комиссия по умолчанию 10 %,
+// другую можно задать переменной AGRO_FEE_PCT.
 
 const ALLOWED_ORIGINS = [
   'https://yoniiii-crypto.github.io', // сайт приложения
@@ -172,6 +177,167 @@ async function handleSync(request, env, path, ip, reply, json) {
   }
 }
 
+// ===== Агрономы онлайн (адреса /agro/...) =====
+// Каталог агрономов и платные консультации. Фермер платит Alqap, Alqap оставляет себе
+// комиссию (по умолчанию 10 % от цены агронома) и переводит остальное агроному.
+// Пока платёжная система не подключена, оплату отмечает администратор вручную: он
+// выставляет фермеру счёт (Kaspi и т. п.), получает деньги и нажимает «Оплачено».
+//   Анкета агронома → проверка администратором → агроном в каталоге.
+//   Заказ фермера (статус pay) → оплата (paid) → ответ агронома (done) → выплата агроному (po=1).
+// Агроном видит вопрос и данные поля только после оплаты, а телефон фермера не видит никогда:
+// так консультация идёт через Alqap. У агронома и у заказа свои секретные коды; на сервере
+// лежат только их хеши. Ключ администратора — секрет AGRO_ADMIN в настройках воркера,
+// в коде его нет. Комиссию можно поменять переменной AGRO_FEE_PCT.
+const AGRO_PER_MINUTE = 60;          // запросов /agro в минуту с одного адреса
+const AGRO_APPS_PER_DAY = 5;         // анкет агрономов в сутки с одного адреса
+const AGRO_ORDERS_PER_DAY = 30;      // заказов в сутки с одного адреса
+const AGRO_MAX_AGROS = 2000;
+const AGRO_MAX_ORDERS = 50000;
+const AGRO_PRICE_MIN = 500, AGRO_PRICE_MAX = 1000000; // тенге за консультацию
+const PHONE_RE = /^\+?[0-9][0-9 ()-]{6,19}$/;
+const agroHits = new Map(), agroApps = new Map(), agroOrders = new Map();
+let agroSchemaReady = false;
+
+function agroFee(env) {
+  const p = Number(env.AGRO_FEE_PCT);
+  return Number.isFinite(p) && p >= 0 && p <= 50 ? p : 10;
+}
+function cut(v, n) { return String(v == null ? '' : v).replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, '').trim().slice(0, n); }
+function newKey(bytes) {
+  const a = new Uint8Array(bytes);
+  crypto.getRandomValues(a);
+  return [...a].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+// Сравнение ключа администратора без раннего выхода по первому несовпавшему символу
+function sameText(a, b) {
+  a = String(a || ''); b = String(b || '');
+  let d = a.length ^ b.length;
+  for (let i = 0; i < Math.max(a.length, b.length); i++) d |= (a.charCodeAt(i) || 0) ^ (b.charCodeAt(i) || 0);
+  return d === 0 && a.length > 0;
+}
+const pubAgro = (r) => ({ id: r.id, name: r.name, region: r.region, crops: r.crops, exp: r.exp, price: r.price, fmt: r.fmt, about: r.about, rate: r.rn ? Math.round(r.rs / r.rn * 10) / 10 : null, rn: r.rn });
+
+async function handleAgro(request, env, path, ip, reply, json) {
+  const fee = agroFee(env);
+  if (path === '/agro/hello') return json(200, { ok: true, on: !!env.AGRO_DB, fee, pay: 'manual', admin: !!env.AGRO_ADMIN });
+  if (!env.AGRO_DB) return reply(501, 'Agronomists are not set up on the server');
+  if (tooMany(agroHits, ip, AGRO_PER_MINUTE)) return reply(429, 'Too many requests, wait a minute');
+  const raw = await request.text();
+  if (raw.length > 20000) return reply(413, 'Request is too large');
+  let q = null;
+  try { q = JSON.parse(raw || '{}'); } catch (e) { return reply(400, 'Bad JSON'); }
+  if (!q || typeof q !== 'object') return reply(400, 'Bad JSON');
+  const db = env.AGRO_DB, now = Date.now();
+  try {
+    if (!agroSchemaReady) {
+      await db.prepare('CREATE TABLE IF NOT EXISTS agros (id TEXT PRIMARY KEY, th TEXT NOT NULL, st TEXT NOT NULL, name TEXT, region TEXT, crops TEXT, exp INTEGER, price INTEGER, fmt TEXT, about TEXT, phone TEXT, rs INTEGER NOT NULL DEFAULT 0, rn INTEGER NOT NULL DEFAULT 0, ct INTEGER, mt INTEGER)').run();
+      await db.prepare('CREATE TABLE IF NOT EXISTS orders (id TEXT PRIMARY KEY, th TEXT NOT NULL, aid TEXT NOT NULL, st TEXT NOT NULL, price INTEGER, fee INTEGER, q TEXT, ctx TEXT, name TEXT, phone TEXT, lang TEXT, ans TEXT, stars INTEGER, po INTEGER NOT NULL DEFAULT 0, ct INTEGER, mt INTEGER)').run();
+      agroSchemaReady = true;
+    }
+    // каталог: только проверенные агрономы, без телефонов
+    if (path === '/agro/list') {
+      const all = await db.prepare("SELECT * FROM agros WHERE st = 'ok' ORDER BY rn DESC, ct ASC LIMIT 200").all();
+      return json(200, { ok: true, fee, list: (all.results || []).map(pubAgro) });
+    }
+    // анкета агронома
+    if (path === '/agro/apply') {
+      const a = { name: cut(q.name, 80), region: cut(q.region, 60), crops: cut(q.crops, 200), fmt: cut(q.fmt, 100), about: cut(q.about, 1000), phone: cut(q.phone, 20) };
+      const price = Math.round(Number(q.price)), exp = Math.round(Number(q.exp));
+      if (a.name.length < 2 || !a.region || !a.crops) return reply(400, 'Fill in name, region and crops');
+      if (!PHONE_RE.test(a.phone)) return reply(400, 'Bad phone');
+      if (!(price >= AGRO_PRICE_MIN && price <= AGRO_PRICE_MAX)) return reply(400, 'Bad price');
+      if (!(exp >= 0 && exp <= 60)) return reply(400, 'Bad experience');
+      if (tooMany(agroApps, ip, AGRO_APPS_PER_DAY, 86400000)) return reply(429, 'Too many applications today');
+      const n = await db.prepare('SELECT COUNT(*) AS n FROM agros').first();
+      if (n && n.n >= AGRO_MAX_AGROS) return reply(507, 'The catalogue is full');
+      const id = newKey(8), token = newKey(32);
+      await db.prepare("INSERT INTO agros (id, th, st, name, region, crops, exp, price, fmt, about, phone, ct, mt) VALUES (?1, ?2, 'wait', ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?11)")
+        .bind(id, await sha256hex(token), a.name, a.region, a.crops, exp, price, a.fmt, a.about, a.phone, now).run();
+      return json(200, { ok: true, id, token });
+    }
+    // кабинет агронома: его анкета и оплаченные заказы
+    if (path === '/agro/me' || path === '/agro/answer' || path === '/agro/update') {
+      if (!ID_RE.test(q.id || '') || !AUTH_RE.test(q.token || '')) return reply(400, 'Bad id or token');
+      const me = await db.prepare('SELECT * FROM agros WHERE id = ?1').bind(q.id).first();
+      if (!me || me.th !== await sha256hex(q.token)) return reply(403, 'Wrong agronomist code');
+      if (path === '/agro/me') {
+        const all = await db.prepare("SELECT id, st, price, fee, q, ctx, lang, ans, stars, po, ct, mt FROM orders WHERE aid = ?1 AND st IN ('paid', 'done') ORDER BY ct DESC LIMIT 200").bind(q.id).all();
+        return json(200, { ok: true, fee, me: { ...pubAgro(me), st: me.st, phone: me.phone }, orders: all.results || [] });
+      }
+      if (path === '/agro/update') {
+        const price = Math.round(Number(q.price));
+        if (!(price >= AGRO_PRICE_MIN && price <= AGRO_PRICE_MAX)) return reply(400, 'Bad price');
+        await db.prepare('UPDATE agros SET price = ?1, about = ?2, fmt = ?3, mt = ?4 WHERE id = ?5').bind(price, cut(q.about, 1000), cut(q.fmt, 100), now, q.id).run();
+        return json(200, { ok: true });
+      }
+      // ответ на оплаченный заказ
+      const text = cut(q.text, 4000);
+      if (!ID_RE.test(q.oid || '') || text.length < 2) return reply(400, 'Bad order or empty answer');
+      const done = await db.prepare("UPDATE orders SET ans = ?1, st = 'done', mt = ?2 WHERE id = ?3 AND aid = ?4 AND st IN ('paid', 'done')").bind(text, now, q.oid, q.id).run();
+      if (!done.meta.changes) return reply(409, 'Order is not paid yet or not yours');
+      return json(200, { ok: true });
+    }
+    // заказ консультации
+    if (path === '/agro/order') {
+      if (!ID_RE.test(q.aid || '')) return reply(400, 'Bad agronomist');
+      const a = await db.prepare("SELECT id, price, name FROM agros WHERE id = ?1 AND st = 'ok'").bind(q.aid).first();
+      if (!a) return reply(404, 'No such agronomist');
+      const text = cut(q.q, 2000), phone = cut(q.phone, 20);
+      if (text.length < 5) return reply(400, 'Write the question');
+      if (!PHONE_RE.test(phone)) return reply(400, 'Bad phone');
+      if (tooMany(agroOrders, ip, AGRO_ORDERS_PER_DAY, 86400000)) return reply(429, 'Too many orders today');
+      const n = await db.prepare('SELECT COUNT(*) AS n FROM orders').first();
+      if (n && n.n >= AGRO_MAX_ORDERS) return reply(507, 'Order storage is full');
+      const id = newKey(8), token = newKey(32), f = Math.round(a.price * fee / 100);
+      await db.prepare("INSERT INTO orders (id, th, aid, st, price, fee, q, ctx, name, phone, lang, ct, mt) VALUES (?1, ?2, ?3, 'pay', ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?11)")
+        .bind(id, await sha256hex(token), a.id, a.price, f, text, cut(q.ctx, 8000), cut(q.name, 80), phone, q.lang === 'kk' ? 'kk' : 'ru', now).run();
+      return json(200, { ok: true, id, token, price: a.price, fee: f, st: 'pay' });
+    }
+    // фермер смотрит свой заказ и ставит оценку
+    if (path === '/agro/status' || path === '/agro/rate') {
+      if (!ID_RE.test(q.id || '') || !AUTH_RE.test(q.token || '')) return reply(400, 'Bad id or token');
+      const o = await db.prepare('SELECT o.*, a.name AS an FROM orders o LEFT JOIN agros a ON a.id = o.aid WHERE o.id = ?1').bind(q.id).first();
+      if (!o || o.th !== await sha256hex(q.token)) return reply(403, 'Wrong order code');
+      if (path === '/agro/rate') {
+        const s = Math.round(Number(q.stars));
+        if (!(s >= 1 && s <= 5)) return reply(400, 'Bad stars');
+        if (o.st !== 'done') return reply(409, 'No answer yet');
+        if (o.stars) return reply(409, 'Already rated');
+        await db.prepare('UPDATE orders SET stars = ?1, mt = ?2 WHERE id = ?3').bind(s, now, o.id).run();
+        await db.prepare('UPDATE agros SET rs = rs + ?1, rn = rn + 1 WHERE id = ?2').bind(s, o.aid).run();
+        return json(200, { ok: true });
+      }
+      return json(200, { ok: true, st: o.st, price: o.price, fee: o.fee, agro: o.an, aid: o.aid, ans: o.st === 'done' ? o.ans : '', stars: o.stars || 0, ct: o.ct, mt: o.mt });
+    }
+    // администратор Alqap: проверка анкет, отметка оплаты и выплаты агроному
+    if (path.startsWith('/agro/admin/')) {
+      if (!env.AGRO_ADMIN) return reply(501, 'Admin key is not set on the server');
+      if (!sameText(q.key, env.AGRO_ADMIN)) return reply(403, 'Wrong admin key');
+      if (path === '/agro/admin/list') {
+        const ag = await db.prepare('SELECT id, st, name, region, crops, exp, price, fmt, about, phone, rs, rn, ct FROM agros ORDER BY ct DESC LIMIT 500').all();
+        const or = await db.prepare('SELECT o.id, o.aid, o.st, o.price, o.fee, o.q, o.name, o.phone, o.lang, o.stars, o.po, o.ct, o.mt, a.name AS an FROM orders o LEFT JOIN agros a ON a.id = o.aid ORDER BY o.ct DESC LIMIT 500').all();
+        return json(200, { ok: true, fee, agros: ag.results || [], orders: or.results || [] });
+      }
+      if (!ID_RE.test(q.id || '')) return reply(400, 'Bad id');
+      const set = {
+        '/agro/admin/approve': ["UPDATE agros SET st = 'ok', mt = ?2 WHERE id = ?1", 'agros'],
+        '/agro/admin/reject': ["UPDATE agros SET st = 'no', mt = ?2 WHERE id = ?1", 'agros'],
+        '/agro/admin/paid': ["UPDATE orders SET st = 'paid', mt = ?2 WHERE id = ?1 AND st = 'pay'", 'orders'],
+        '/agro/admin/cancel': ["UPDATE orders SET st = 'cancel', mt = ?2 WHERE id = ?1 AND st IN ('pay', 'paid')", 'orders'],
+        '/agro/admin/payout': ["UPDATE orders SET po = 1, mt = ?2 WHERE id = ?1 AND st = 'done'", 'orders'],
+      }[path];
+      if (!set) return reply(404, 'Unknown admin route');
+      const r = await db.prepare(set[0]).bind(q.id, now).run();
+      if (!r.meta.changes) return reply(409, 'Nothing changed: wrong id or status');
+      return json(200, { ok: true });
+    }
+    return reply(404, 'Unknown agro route');
+  } catch (e) {
+    agroSchemaReady = false;
+    return reply(503, 'Database is not available');
+  }
+}
+
 export default {
   async fetch(request, env) {
     const origin = request.headers.get('Origin') || '';
@@ -195,6 +361,7 @@ export default {
     const url = new URL(request.url);
     const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
     if (url.pathname.startsWith('/sync/')) return handleSync(request, env, url.pathname, ip, reply, json);
+    if (url.pathname.startsWith('/agro/')) return handleAgro(request, env, url.pathname, ip, reply, json);
 
     if (!env.GEMINI_KEY) return reply(500, 'GEMINI_KEY is not set on the server');
     if (tooMany(hits, ip, PER_MINUTE)) return reply(429, 'Too many requests, wait a minute');
