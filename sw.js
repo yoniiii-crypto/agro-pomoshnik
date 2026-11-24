@@ -14,7 +14,12 @@ self.addEventListener('fetch', e => {
   if (new URL(e.request.url).origin !== location.origin) return;
   e.respondWith(
     fetch(e.request)
-      .then(r => { const copy = r.clone(); caches.open(CACHE).then(c => c.put(e.request, copy)); return r; })
+      .then(r => {
+        // в копию попадают только удачные ответы: страница ошибки GitHub не должна заменить рабочую офлайн-копию
+        if (r.ok && r.type === 'basic') { const copy = r.clone(); caches.open(CACHE).then(c => c.put(e.request, copy)); }
+        // сайт ответил ошибкой (например, сбой GitHub) — отдаём сохранённую копию, если она есть
+        return r.ok ? r : caches.match(e.request).then(c => c || r);
+      })
       .catch(() => caches.match(e.request).then(r => r || caches.match('./index.html')))
   );
 });
