@@ -636,11 +636,12 @@ function draftDrop(){DRAFTON=false;try{localStorage.removeItem(draftKey())}catch
 function draftRestore(pre){DRAFTON=false;$('dDraft').classList.add('hidden');var o=null;try{o=JSON.parse(localStorage.getItem(draftKey())||'null')}catch(e){}
  if(!draftHas(o)||!(Date.now()-o.t<7*864e5)){if(o)draftDrop();return}
  if(pre&&pre.f&&o.dField!==pre.f)return;
- if(['dCrop','dYield','dCost','dPr','dWait','dNote'].some(function(id){return $(id).value.trim()!==''}))return;
- DRF.forEach(function(id){if(o[id]!=null&&(id!='dOp'||OPS.indexOf(o[id])>=0))$(id).value=o[id]});DRAFTON=true;
+ if(['dYield','dCost','dPr','dWait','dNote'].some(function(id){return $(id).value.trim()!==''}))return;
+ DRF.forEach(function(id){if(o[id]!=null&&(id!='dOp'||OPS.indexOf(o[id])>=0))$(id).value=o[id]});DRAFTON=true;chipsSync();opToggle();
  var d=new Date(o.t);$('dDraftT').textContent=T('Восстановлен незаконченный черновик от ','Аяқталмаған қаралама қалпына келтірілді: ')+dmy(iso(d))+' '+('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2)+'.';
  $('dDraftX').textContent=T('Очистить','Тазарту');$('dDraft').classList.remove('hidden')}
 $('dDraftX').onclick=function(){draftDrop();['dCrop','dArea','dYield','dCost','dPr','dWait','dNote'].forEach(function(id){$(id).value=''});$('dDate').value=today();chipsSync();opToggle();$('dField').focus()};
+var openSheet0=openSheet;openSheet=function(mode,pre){openSheet0(mode,pre);if(mode!='edit')draftRestore(pre)};
 $('dForm').addEventListener('input',draftSave);$('dForm').addEventListener('change',draftSave);$('dChips').addEventListener('click',function(){setTimeout(draftSave,0)});
 
 $("dAdd").onclick=function(){
@@ -1579,7 +1580,7 @@ function gcPhotos(){var used={};try{for(var i=0;i<localStorage.length;i++){var k
 /* ===== Лист добавления записи ===== */
 function chipsSync(){Array.prototype.forEach.call($('dChips').querySelectorAll('.chip'),function(b){b.setAttribute('aria-pressed',b.dataset.op==$('dOp').value)})}
 function openSheet(mode,pre){var w=$('sheetW');clearTimeout(closeSheet.h);if(mode!='edit')phReset();if($('dAiW')){$('dAiW').classList.toggle('hidden',!AIS||mode=='edit');if(mode!='edit'){$('dAiT').value='';$('dAiO').textContent='';$('dAiL').textContent=T('Записать словами','Сөзбен жазу');DAISRC='';$('dAiGo').textContent=T('Заполнить запись','Жазбаны толтыру');$('dAiDoc').textContent=T('Заполнить по фото накладной или чека','Жүкқұжат не чек суреті бойынша толтыру');$('dAiDoc').disabled=false;$('dAiDoc').classList.toggle('hidden',!(AIC&&AIC.images));$('dAiDocN').classList.toggle('hidden',!(AIC&&AIC.images));$('dAiDocN').textContent=AIPROV=='gemini'?T('Фото документа уходит в ИИ Google Gemini. На бесплатном тарифе Google может использовать его для улучшения сервисов, поэтому закройте ИИН, телефоны и подписи.','Құжат суреті Google Gemini ЖИ-ге жіберіледі. Тегін тарифте Google оны қызметтерін жақсарту үшін пайдалануы мүмкін, сондықтан ЖСН, телефон мен қолтаңбаны жабыңыз.'):T('Фото документа уходит в ИИ только для распознавания.','Құжат суреті ЖИ-ге тек тану үшін жіберіледі.')}}$('tip').classList.add('hidden');
- if(mode!='edit'){if(EDIT!=null)endEdit();$('dErr').classList.add('hidden');$('dDate').value=today();draftRestore(pre);if(pre&&pre.f&&!DRAFTON){$('dField').value=pre.f;$('dArea').value=AR[pre.f]||'';var lc=lastCrop(hist(D)[pre.f]);if(lc)$('dCrop').value=lc.c[0].k}t0=Date.now()}
+ if(mode!='edit'){if(EDIT!=null)endEdit();$('dErr').classList.add('hidden');$('dDate').value=today();if(pre&&pre.f){$('dField').value=pre.f;$('dArea').value=AR[pre.f]||'';var lc=lastCrop(hist(D)[pre.f]);if(lc)$('dCrop').value=lc.c[0].k}t0=Date.now()}
  $('shT').textContent=mode=='edit'?T('Правка записи','Жазбаны өзгерту'):T('Новая запись','Жаңа жазба');$('shX').textContent=T('Отмена','Болдырмау');chipsSync();opToggle();
  w.classList.remove('hidden');w.classList.remove('out');document.body.classList.add('noscroll');$('sheet').scrollTop=0;
  setTimeout(function(){$('shX').focus()},50)}
