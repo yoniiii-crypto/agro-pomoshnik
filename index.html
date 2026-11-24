@@ -486,7 +486,21 @@ var FARMS={list:[{id:"f1",name:"Моё хозяйство"}],cur:"f1"};try{var f
 if(!FARMS.list.some(function(f){return f.id==FARMS.cur}))FARMS.cur=FARMS.list[0].id;
 function FK(k,id){id=id||FARMS.cur;return id=="f1"?k:k+"@"+id}
 function saveFarms(){try{localStorage.setItem("agro_farms_v1",JSON.stringify(FARMS))}catch(e){}}
-function lsJ(k,id,def){try{var v=JSON.parse(localStorage.getItem(FK(k,id))||"null");return v==null?def:v}catch(e){return def}}
+/* Данные из общей базы и из файлов пишут другие телефоны, поэтому им не доверяем: числа приводим к числам,
+   номера записей и даты — к безопасному виду. Иначе строка с HTML в поле «затраты» попала бы на экран как код */
+function cleanNum(v){v=+v;return isFinite(v)?v:0}
+function cleanId(v){return typeof v=='number'&&isFinite(v)?v:String(v==null?'':v).replace(/[^0-9A-Za-z_.:-]/g,'').slice(0,60)}
+function cleanDay(v){v=String(v==null?'':v);return/^\d{4}-\d{2}-\d{2}$/.test(v)?v:v.replace(/[^0-9-]/g,'').slice(0,10)}
+var CLEAN_L={agro_diary_v1:['c','y','w'],agro_tasks_v1:[],agro_sales_v1:['t','p'],agro_comments_v1:[]};
+function cleanKey(k,v){try{
+ if(k=='agro_fields_v1'||k=='agro_prices_v1'){if(!v||typeof v!='object'||Array.isArray(v))return{};Object.keys(v).forEach(function(x){v[x]=cleanNum(v[x])})}
+ else if(CLEAN_L[k]){if(!Array.isArray(v))return[];v=v.filter(function(e){return e&&typeof e=='object'&&!Array.isArray(e)});v.forEach(function(e){if('id' in e)e.id=cleanId(e.id);
+   CLEAN_L[k].forEach(function(n){if(e[n]!=null&&e[n]!=='')e[n]=cleanNum(e[n])});
+   if(k=='agro_comments_v1'){if('e' in e)e.e=String(cleanId(e.e));e.d=cleanNum(e.d)}else if('d' in e)e.d=cleanDay(e.d);
+   if(k=='agro_diary_v1'&&e.ph!=null)e.ph=Array.isArray(e.ph)?e.ph.map(cleanId).filter(function(x){return x!==''}):[]})}
+ else if(k=='agro_bounds_v1'){if(!v||typeof v!='object'||Array.isArray(v))return{};Object.keys(v).forEach(function(f){var P=v[f];v[f]=Array.isArray(P)?P.filter(Array.isArray).map(function(q){return[cleanNum(q[0]),cleanNum(q[1])]}):[]})}
+}catch(e){}return v}
+function lsJ(k,id,def){try{var v=JSON.parse(localStorage.getItem(FK(k,id))||"null");return v==null?def:cleanKey(k,v)}catch(e){return def}}
 var W=["w","g","c"];
 var CFG={
 N:{name:"Север, богара",crops:[["Яровая пшеница",15,1],["Ячмень",18,.9],["Подсолнечник",12,.8],["Рапс",10,1.2],["Лён масличный",8,1.1],["Горох",15,1],["Картофель",200,1.2],["Многолетние травы (сено)",25,.8],["Кукуруза на силос",250,1]],f:[
@@ -579,8 +593,8 @@ document.addEventListener("click",function(ev){var b=ev.target.closest&&ev.targe
 
 /* Дневник */
 var OPS=["Обработка почвы","Сев или посадка","Удобрения","Полив","Защита растений","Осмотр поля","Уборка","Другое"];
-var LS="agro_diary_v1",D=[];var AR={};try{AR=JSON.parse(localStorage.getItem(FK("agro_fields_v1"))||"{}")||{}}catch(e){AR={}}
-try{D=JSON.parse(localStorage.getItem(FK(LS))||"[]");if(!Array.isArray(D))D=[]}catch(e){D=[]}
+var LS="agro_diary_v1",D=[];var AR={};AR=lsJ("agro_fields_v1",null,{})
+D=lsJ(LS,null,[])
 /* Обсуждение записей в общем хозяйстве: комментарии — отдельный список, у каждого свой номер, поэтому одновременные комментарии не теряются */
 var CM=[],CMN={},CMOPEN={},CMDRAFT={};
 function loadCM(){CM=lsJ('agro_comments_v1',null,[]);if(!Array.isArray(CM))CM=[];cmIndex()}
@@ -1028,7 +1042,7 @@ try{var m0=JSON.parse(localStorage.getItem(FK('agro_calc_v1'))||'{}');Object.key
 Array.prototype.forEach.call(document.querySelectorAll(ALL),function(e){e.oninput=e.onchange=upd});
 $('nO').onchange=function(){fillT();upd()};
 /* План работ: свои задачи, сезонные подсказки, экспорт в календарь телефона */
-var TK=[];try{TK=JSON.parse(localStorage.getItem(FK('agro_tasks_v1'))||'[]');if(!Array.isArray(TK))TK=[]}catch(e){TK=[]}
+var TK=[];TK=lsJ('agro_tasks_v1',null,[])
 function saveTK(){syncBy(TK,'agro_tasks_v1');try{localStorage.setItem(FK('agro_tasks_v1'),JSON.stringify(TK))}catch(e){toast('Не удалось сохранить план.')}}
 /* [зона N/S/A, месяц и день начала, месяц и день конца, задача, пояснение, операция дневника] */
 var SEAS=[
@@ -2535,9 +2549,9 @@ function syncStatus(m){if(m.gone)return T('общая копия удалена 
  if(m.err)return T('ошибка синхронизации','синхрондау қатесі');var w=m.ro?T('только просмотр','тек қарау'):T('общее','ортақ');return m.last?w+T(', обновлено ',', жаңартылды ')+syncWhen(m.last):w}
 function syncRO(){var m=syncMeta(FARMS.cur);return!!(m&&m.ro&&!m.gone)}
 /* Данные хозяйства из памяти браузера заново читаются в приложение: после слияния и когда их изменила другая вкладка */
-function syncLoadState(){try{D=JSON.parse(localStorage.getItem(FK(LS))||'[]');if(!Array.isArray(D))D=[]}catch(e){D=[]}
- try{AR=JSON.parse(localStorage.getItem(FK('agro_fields_v1'))||'{}')||{}}catch(e){AR={}}
- try{TK=JSON.parse(localStorage.getItem(FK('agro_tasks_v1'))||'[]');if(!Array.isArray(TK))TK=[]}catch(e){TK=[]}
+function syncLoadState(){D=lsJ(LS,null,[])
+ AR=lsJ('agro_fields_v1',null,{})
+ TK=lsJ('agro_tasks_v1',null,[])
  loadCM();cmPatch();loadSL();loadBND();PR=lsJ('agro_prices_v1',null,{});if(!PR||typeof PR!='object')PR={};
  NORMS=lsJ('agro_norms_v1',null,null)||{};['y','r','n','m','pt','f'].forEach(function(k){if(!NORMS[k]||typeof NORMS[k]!='object')NORMS[k]={}});applyNorms();
  var rg=lsJ('agro_region_v1',null,null);if(rg&&!REG[rg.o])rg=null;if(JSON.stringify(rg)!==JSON.stringify(RG)){RG=rg;WX=null;WXA=null}
