@@ -564,7 +564,7 @@ function T(ru,kk){return LANG=='kk'&&kk?kk:ru}
 function Tk(ru,kk){return LANG=='kk'&&kk?kk:ru}
 var OPK={'Обработка почвы':'Топырақ өңдеу','Сев или посадка':'Себу немесе отырғызу','Удобрения':'Тыңайтқыштар','Полив':'Суару','Защита растений':'Өсімдіктерді қорғау','Осмотр поля':'Алқапты қарау','Уборка':'Егін жинау','Другое':'Басқа'};
 function opName(o){return LANG=='kk'&&OPK[o]?OPK[o]:o}
-function ask(t,ok,fn,danger){$('dlgT').textContent=t;var b=$('dlgOk'),w=$('dlg');b.textContent=ok;b.classList.toggle('dng',!!danger);w.classList.remove('hidden');b.focus();var close=function(){w.classList.add('hidden')};b.onclick=function(){close();fn()};$('dlgNo').onclick=close;w.onclick=function(e){if(e.target===w)close()}}
+function ask(t,ok,fn,danger){armBack();$('dlgT').textContent=t;var b=$('dlgOk'),w=$('dlg');b.textContent=ok;b.classList.toggle('dng',!!danger);w.classList.remove('hidden');b.focus();var close=function(){w.classList.add('hidden')};b.onclick=function(){close();fn()};$('dlgNo').onclick=close;w.onclick=function(e){if(e.target===w)close()}}
 function toast(msg,btn,fn){var t=$("toast");$("toastT").textContent=msg;$("toastB").textContent=btn||"";$("toastB").classList.toggle("hidden",!btn);$("toastB").onclick=function(){t.classList.add("hidden");if(fn)fn()};t.classList.remove("hidden");clearTimeout(toast.h);toast.h=setTimeout(function(){t.classList.add("hidden")},btn?9000:3500)}
 function download(name,text,type){if(ART){var no=function(){toast('Сохранение файлов недоступно в этом просмотре.')};if(!window.claude||!window.claude.use){no();return}window.claude.use('downloads').then(function(d){if(!d){no();return}return d.save({filename:name,data:text}).then(function(){toast('Файл сохранён.')},function(e){var c=e&&e.code;if(c=='declined')return;toast(c=='rejected_extension'||c=='extension_not_enabled'?'Этот формат здесь не сохраняется.':c=='rate_limited'?'Окно сохранения уже открыто.':'Не удалось сохранить файл.')})},no);return}try{var b=new Blob([text],{type:type}),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},1500)}catch(e){toast("Браузер не дал сохранить файл. Воспользуйтесь текстом для копирования.")}}
 function csvCell(v){v=String(v==null?"":v);return /[;"\n\r]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}
@@ -1537,7 +1537,7 @@ function hydratePh(root){Array.prototype.forEach.call(root.querySelectorAll('.ph
 function entryCap(e){return [e.f,dmy(e.d),e.o,e.cr,e.n].filter(Boolean).join(' · ')}
 var PHCUR=null;
 function openPh(id,cap){pGetAny(id).then(function(b){if(!b){toast(syncMeta(FARMS.cur)?T('Фото пока не загрузилось: его ещё не отправил телефон, на котором оно снято, или нет интернета.','Сурет әлі жүктелмеді: оны түсірген телефон әлі жібермеген немесе интернет жоқ.'):'Фото недоступно на этом устройстве.');return}PHCUR={id:id,b:b,cap:cap||''};pUrl(id).then(function(u){$('phvI').src=u});$('phvI').alt=cap||'Фото';$('phvC').textContent=cap||'';
- var f=new File([b],'agro-foto.jpg',{type:'image/jpeg'}),can=!ART&&navigator.canShare&&navigator.canShare({files:[f]});$('phvS').classList.toggle('hidden',!can);$('phv').classList.remove('hidden');$('phvX').focus()},function(){toast('Фото недоступно.')})}
+ var f=new File([b],'agro-foto.jpg',{type:'image/jpeg'}),can=!ART&&navigator.canShare&&navigator.canShare({files:[f]});$('phvS').classList.toggle('hidden',!can);$('phv').classList.remove('hidden');armBack();$('phvX').focus()},function(){toast('Фото недоступно.')})}
 $('phvX').onclick=function(){$('phv').classList.add('hidden');PHCUR=null};
 $('phv').addEventListener('click',function(e){if(e.target===$('phv'))$('phvX').click()});
 $('phvS').onclick=function(){if(!PHCUR)return;var f=new File([PHCUR.b],'agro-foto.jpg',{type:'image/jpeg'});navigator.share({files:[f],text:PHCUR.cap+'\n\nОтправлено из Alqap'}).catch(function(){})};
@@ -1559,7 +1559,7 @@ function gcPhotos(){var used={};try{for(var i=0;i<localStorage.length;i++){var k
 
 /* ===== Лист добавления записи ===== */
 function chipsSync(){Array.prototype.forEach.call($('dChips').querySelectorAll('.chip'),function(b){b.setAttribute('aria-pressed',b.dataset.op==$('dOp').value)})}
-function openSheet(mode,pre){var w=$('sheetW');clearTimeout(closeSheet.h);if(mode!='edit')phReset();if($('dAiW')){$('dAiW').classList.toggle('hidden',!AIS||mode=='edit');if(mode!='edit'){$('dAiT').value='';$('dAiO').textContent='';$('dAiL').textContent=T('Записать словами','Сөзбен жазу');DAISRC='';$('dAiGo').textContent=T('Заполнить запись','Жазбаны толтыру');$('dAiDoc').textContent=T('Заполнить по фото накладной или чека','Жүкқұжат не чек суреті бойынша толтыру');$('dAiDoc').disabled=false;$('dAiDoc').classList.toggle('hidden',!(AIC&&AIC.images));$('dAiDocN').classList.toggle('hidden',!(AIC&&AIC.images));$('dAiDocN').textContent=AIPROV=='gemini'?T('Фото документа уходит в ИИ Google Gemini. На бесплатном тарифе Google может использовать его для улучшения сервисов, поэтому закройте ИИН, телефоны и подписи.','Құжат суреті Google Gemini ЖИ-ге жіберіледі. Тегін тарифте Google оны қызметтерін жақсарту үшін пайдалануы мүмкін, сондықтан ЖСН, телефон мен қолтаңбаны жабыңыз.'):T('Фото документа уходит в ИИ только для распознавания.','Құжат суреті ЖИ-ге тек тану үшін жіберіледі.')}}$('tip').classList.add('hidden');
+function openSheet(mode,pre){armBack();var w=$('sheetW');clearTimeout(closeSheet.h);if(mode!='edit')phReset();if($('dAiW')){$('dAiW').classList.toggle('hidden',!AIS||mode=='edit');if(mode!='edit'){$('dAiT').value='';$('dAiO').textContent='';$('dAiL').textContent=T('Записать словами','Сөзбен жазу');DAISRC='';$('dAiGo').textContent=T('Заполнить запись','Жазбаны толтыру');$('dAiDoc').textContent=T('Заполнить по фото накладной или чека','Жүкқұжат не чек суреті бойынша толтыру');$('dAiDoc').disabled=false;$('dAiDoc').classList.toggle('hidden',!(AIC&&AIC.images));$('dAiDocN').classList.toggle('hidden',!(AIC&&AIC.images));$('dAiDocN').textContent=AIPROV=='gemini'?T('Фото документа уходит в ИИ Google Gemini. На бесплатном тарифе Google может использовать его для улучшения сервисов, поэтому закройте ИИН, телефоны и подписи.','Құжат суреті Google Gemini ЖИ-ге жіберіледі. Тегін тарифте Google оны қызметтерін жақсарту үшін пайдалануы мүмкін, сондықтан ЖСН, телефон мен қолтаңбаны жабыңыз.'):T('Фото документа уходит в ИИ только для распознавания.','Құжат суреті ЖИ-ге тек тану үшін жіберіледі.')}}$('tip').classList.add('hidden');
  if(mode!='edit'){if(EDIT!=null)endEdit();$('dErr').classList.add('hidden');$('dDate').value=today();if(pre&&pre.f){$('dField').value=pre.f;$('dArea').value=AR[pre.f]||'';var lc=lastCrop(hist(D)[pre.f]);if(lc)$('dCrop').value=lc.c[0].k}t0=Date.now()}
  $('shT').textContent=mode=='edit'?T('Правка записи','Жазбаны өзгерту'):T('Новая запись','Жаңа жазба');$('shX').textContent=T('Отмена','Болдырмау');chipsSync();opToggle();
  w.classList.remove('hidden');w.classList.remove('out');document.body.classList.add('noscroll');$('sheet').scrollTop=0;
@@ -1902,7 +1902,7 @@ function tourShow(){var S=tourSteps(),i=TOUR.i,st=S[i];if(!st){tourEnd();return}
  $('tourP').textContent=T('Назад','Артқа');$('tourP').classList.toggle('hidden',i==0);$('tourNx').textContent=i==S.length-1?T('Готово','Дайын'):T('Далее','Келесі');
  $('tour').classList.remove('hidden');
  setTimeout(function(){if(st.el!='navAdd'){var r=el.getBoundingClientRect(),y=r.top+window.scrollY-64;window.scrollTo(0,Math.max(0,y))}else window.scrollTo(0,0);if(typeof navUpd=='function')navUpd();$('tourNx').focus()},30)}
-function tourStart(i){TOUR.on=true;TOUR.i=i||0;tourShow()}
+function tourStart(i){armBack();TOUR.on=true;TOUR.i=i||0;tourShow()}
 function tourEnd(){TOUR.on=false;tourClr();$('tour').classList.add('hidden');try{localStorage.setItem('agro_tour_v1','1')}catch(e){}}
 Array.prototype.forEach.call(document.querySelectorAll('#hQA [data-qa]'),function(b){b.onclick=function(){var k=b.dataset.qa;if(k=='W')tab('W','wdQ');else if(k=='S')tab('S');else if(k=='F')tab('Z','zFert');else tab('Z','zGps')}});
 $('tourNx').onclick=function(){var S=tourSteps();if(TOUR.i>=S.length-1){tourEnd();tab('H');toast(T('Знакомство окончено. Повторить можно в «Ещё».','Танысу аяқталды. «Тағы» бөлімінде қайталауға болады.'));return}TOUR.i++;tourShow()};
@@ -2303,13 +2303,28 @@ function tab(k,sec){closeSheet();var toPlan=k=='T';if(toPlan)k='X';if(!TABS[k])k
  /* «Ещё»: каждый раздел — отдельная страница, а не одна длинная лента */
  if(k=='X'){XSEC=go&&$(go)&&$(go).parentNode&&$(go).parentNode.id=='more'?go:'mFarm';Array.prototype.forEach.call($('more').children,function(x){if(x.tagName=='SECTION')x.classList.toggle('hidden',x.id!=XSEC)});setTitle();go=null}
  if(go)setTimeout(function(){var y=$(go).getBoundingClientRect().top+window.scrollY-60;window.scrollTo(0,Math.max(0,y));navUpd()},0);
- calcP();calcF();calcN();setTimeout(scrFocus,0);try{localStorage.setItem('agro_tab_v1',k=='G'?'L':k)}catch(e){}}
+ calcP();calcF();calcN();setTimeout(scrFocus,0);if(k!='H')armBack();try{localStorage.setItem('agro_tab_v1',k=='G'?'L':k)}catch(e){}}
 function scrFocus(){Array.prototype.forEach.call(document.querySelectorAll('.scr'),function(e){if(!e.hasAttribute('tabindex')){e.tabIndex=0;e.setAttribute('role','region');e.setAttribute('aria-label','Таблица, прокручивается вбок')}})}
 BAR.forEach(function(x){$('t'+x).onclick=function(){if(CUR==x)window.scrollTo({top:0,behavior:'smooth'});else tab(x)}});
 $('back').onclick=function(){tab(ORIG)};
 $('navAdd').onclick=function(){openSheet('new',CUR=='G'?{f:CURF}:null)};
 $('shX').onclick=closeSheet;$('sheetW').addEventListener('click',function(e){if(e.target===$('sheetW'))closeSheet()});
-document.addEventListener('keydown',function(e){if(e.key=='Escape'){if(!$('phv').classList.contains('hidden')){$('phvX').click();return}if(TOUR.on&&$('sheetW').classList.contains('hidden')&&$('dlg').classList.contains('hidden')){tourEnd();return}if(!$('dlg').classList.contains('hidden'))$('dlg').classList.add('hidden');else closeSheet()}});
+/* Кнопка «Назад» телефона (Android, жест «назад» на iPhone) и Esc: сначала закрывают фото, окно, форму или тур,
+   потом возвращают на предыдущий экран, потом на «Сводку». Только на «Сводке» «Назад» закрывает приложение.
+   Для этого в истории браузера держим одну запись-«предохранитель» с тем же адресом. */
+function backStep(esc){if(!$('phv').classList.contains('hidden')){$('phvX').click();return true}
+ if(!$('dlg').classList.contains('hidden')){$('dlg').classList.add('hidden');return true}
+ if(sheetOpen()){closeSheet();return true}
+ if(TOUR.on){tourEnd();return true}
+ if(esc)return false;
+ if(SUB.indexOf(CUR)>=0){tab(ORIG);return true}
+ if(CUR!='H'){tab('H');return true}
+ return false}
+function armBack(){try{if(!(history.state&&history.state.alqapBack))history.pushState({alqapBack:1},'')}catch(e){}}
+function sheetOpen(){var w=$('sheetW');return!w.classList.contains('hidden')&&!w.classList.contains('out')}
+function backNeeded(){return CUR!='H'||TOUR.on||sheetOpen()||!$('phv').classList.contains('hidden')||!$('dlg').classList.contains('hidden')}
+window.addEventListener('popstate',function(e){if(e.state&&e.state.alqapBack)return;var did=backStep(false);if(backNeeded())armBack();else if(!did)history.back()});
+document.addEventListener('keydown',function(e){if(e.key=='Escape')backStep(true)});
 Array.prototype.forEach.call(document.querySelectorAll('#menu [data-go]'),function(b){b.onclick=function(){if(b.dataset.go=='tour'){tourAsk();return}if(b.dataset.go=='demo'){loadDemo();return}if(b.dataset.go=='rep'){report('farm');return}if(b.dataset.go=='bank'){report('bank');return}tab(b.dataset.go,b.dataset.sec)}});
 /* ===== Общая база: одно хозяйство на нескольких телефонах =====
    Код хозяйства (20 знаков) есть только у тех, с кем им поделились. Из кода телефон получает номер хозяйства,
