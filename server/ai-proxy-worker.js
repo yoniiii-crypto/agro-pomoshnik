@@ -360,6 +360,8 @@ export default {
 
     const url = new URL(request.url);
     const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+    // Слишком большой запрос отклоняем до чтения тела, чтобы не тратить память сервера
+    if (Number(request.headers.get('Content-Length') || 0) > MAX_BYTES) return reply(413, 'Request too large');
     if (url.pathname.startsWith('/sync/')) return handleSync(request, env, url.pathname, ip, reply, json);
     if (url.pathname.startsWith('/agro/')) return handleAgro(request, env, url.pathname, ip, reply, json);
 
