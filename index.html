@@ -466,6 +466,7 @@ body.noscroll{overflow:hidden}
     <div id="dPrW" class="hidden"><label for="dPr" data-i="dPr">Препарат и норма, как применили (по этикетке)</label><input id="dPr" placeholder="Например: препарат, л/га, обработано га"><label for="dWait" data-i="dWait">Срок ожидания до уборки, дней (с этикетки)</label><input id="dWait" type="number" min="0" max="180" step="1" inputmode="numeric" placeholder="необязательно"></div>
     <label for="dNote" data-i="dNote">Заметка (фаза, погода, что заметили)</label><textarea id="dNote"></textarea><button class="sm hidden" id="dMic" type="button">Надиктовать заметку</button>
     <p class="lbl" data-i="dPh">Фото</p><div class="phs" id="dPhs"></div><button class="sm" id="dPhB" type="button">Добавить фото</button><input id="dPhIn" type="file" accept="image/*" multiple class="hidden" aria-label="Фото к записи">
+    <p id="dDraft" class="note hidden"><span id="dDraftT"></span> <button class="lnk" id="dDraftX" type="button" style="display:inline;margin:0;min-height:36px">Очистить</button></p>
     <p id="dErr" class="bad hidden" role="alert"></p>
     <div class="row"><button class="btn" id="dLast" data-i="dLast">Как прошлая запись</button><button class="btn hidden" id="dCancel">Отменить правку</button><button class="btn main" id="dAdd" data-i="dAdd">Добавить запись</button></div>
   </section>
@@ -624,6 +625,25 @@ function dErr(msg,id){var e=$("dErr");e.textContent=msg;e.classList.remove("hidd
 var EDIT=null;
 function endEdit(){EDIT=null;t0=null;$("dAdd").textContent=LANG=="kk"&&KK.dAdd?KK.dAdd:"Добавить запись";$("dCancel").classList.add("hidden");$("dLast").classList.remove("hidden");["dNote","dCost","dYield","dPr","dWait"].forEach(function(id){$(id).value=""});$("dDate").value=today()}
 $("dCancel").onclick=function(){endEdit();renderDiary()};
+/* Черновик новой записи: если телефон выгрузил приложение (звонок, камера) или форму закрыли случайно,
+   набранное не пропадает. Хранится на телефоне 7 дней, отдельно для каждого хозяйства. Фото в черновик не входят. */
+var DRF=['dField','dDate','dOp','dCrop','dArea','dYield','dCost','dPr','dWait','dNote'],DRAFTON=false;
+function draftKey(){return FK('agro_draft_v1')}
+function draftHas(o){return!!o&&['dCrop','dYield','dCost','dPr','dWait','dNote'].some(function(id){return String(o[id]||'').trim()!==''})}
+function draftSave(){if(EDIT!=null||$('sheetW').classList.contains('hidden'))return;var o={t:Date.now()};DRF.forEach(function(id){o[id]=$(id).value});
+ try{if(draftHas(o))localStorage.setItem(draftKey(),JSON.stringify(o));else localStorage.removeItem(draftKey())}catch(e){}}
+function draftDrop(){DRAFTON=false;try{localStorage.removeItem(draftKey())}catch(e){}$('dDraft').classList.add('hidden')}
+function draftRestore(pre){DRAFTON=false;$('dDraft').classList.add('hidden');var o=null;try{o=JSON.parse(localStorage.getItem(draftKey())||'null')}catch(e){}
+ if(!draftHas(o)||!(Date.now()-o.t<7*864e5)){if(o)draftDrop();return}
+ if(pre&&pre.f&&o.dField!==pre.f)return;
+ if(['dYield','dCost','dPr','dWait','dNote'].some(function(id){return $(id).value.trim()!==''}))return;
+ DRF.forEach(function(id){if(o[id]!=null&&(id!='dOp'||OPS.indexOf(o[id])>=0))$(id).value=o[id]});DRAFTON=true;chipsSync();opToggle();
+ var d=new Date(o.t);$('dDraftT').textContent=T('Восстановлен незаконченный черновик от ','Аяқталмаған қаралама қалпына келтірілді: ')+dmy(iso(d))+' '+('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2)+'.';
+ $('dDraftX').textContent=T('Очистить','Тазарту');$('dDraft').classList.remove('hidden')}
+$('dDraftX').onclick=function(){draftDrop();['dCrop','dArea','dYield','dCost','dPr','dWait','dNote'].forEach(function(id){$(id).value=''});$('dDate').value=today();chipsSync();opToggle();$('dField').focus()};
+var openSheet0=openSheet;openSheet=function(mode,pre){openSheet0(mode,pre);if(mode!='edit')draftRestore(pre)};
+$('dForm').addEventListener('input',draftSave);$('dForm').addEventListener('change',draftSave);$('dChips').addEventListener('click',function(){setTimeout(draftSave,0)});
+
 $("dAdd").onclick=function(){
  $("dErr").classList.add("hidden");
  var f=$("dField").value.trim();
@@ -635,7 +655,7 @@ $("dAdd").onclick=function(){
  if(op=="Уборка"&&+$("dYield").value>0&&!yCheck.ok){var yA=ar>0?ar:AR[f],yv=yA>0?+$("dYield").value*10/yA:0,yc=cropOf($("dCrop").value),ymx=yCheck.max(yc);if(yv&&(yv>ymx||yv<0.5)){ask("Урожайность выходит "+num(yv.toFixed(1))+" ц/га"+(yv>ymx?" — для культуры «"+(yc.k||"эта культура")+"» это необычно много":" — это необычно мало")+". Проверьте: «Собрано» пишется в тоннах (1 т = 10 ц), площадь поля — в гектарах.","Сохранить так",function(){yCheck.ok=1;$("dAdd").click()});return}}
  yCheck.ok=0;if(ar>0){AR[f]=ar;saveAR()}
  if(EDIT!=null){var ed=D.filter(function(q){return q.id==EDIT})[0];if(ed){var ej=eSig(ed);ed.f=f;ed.d=$("dDate").value||ed.d;ed.o=op;ed.cr=$("dCrop").value.trim();ed.c=+$("dCost").value||0;ed.y=+$("dYield").value||0;ed.p=op=="Защита растений"?$("dPr").value.trim():"";ed.w=op=="Защита растений"?Math.round(+$("dWait").value||0):0;ed.n=$("dNote").value.trim();ed.ph=phCommit();/* общее хозяйство: кто и когда правил запись */if(eSig(ed)!==ej&&farmShared()&&syncMe()){ed.eb=syncMe();ed.et=Date.now()}}save();endEdit();closeSheet();refreshData();toast("Изменения сохранены.");return}
- D.push({id:Date.now(),f:f,d:$("dDate").value||today(),o:op,cr:$("dCrop").value.trim(),c:+$("dCost").value||0,y:+$("dYield").value||0,p:op=="Защита растений"?$("dPr").value.trim():"",w:op=="Защита растений"?Math.round(+$("dWait").value||0):0,n:$("dNote").value.trim(),ph:phCommit(),ai:DAISRC||undefined});DAISRC="";
+ D.push({id:Date.now(),f:f,d:$("dDate").value||today(),o:op,cr:$("dCrop").value.trim(),c:+$("dCost").value||0,y:+$("dYield").value||0,p:op=="Защита растений"?$("dPr").value.trim():"",w:op=="Защита растений"?Math.round(+$("dWait").value||0):0,n:$("dNote").value.trim(),ph:phCommit(),ai:DAISRC||undefined});DAISRC="";draftDrop();
  if(t0){var sec=Math.round((Date.now()-t0)/1000);if(sec>0&&sec<1800){PILOT.t.push(sec);savePilot()}}t0=null;
  save();$("dNote").value="";$("dCost").value="";$("dYield").value="";$("dPr").value="";$("dWait").value="";closeSheet();refreshData();toast("Запись добавлена.");
 };
