@@ -61,6 +61,8 @@ ok('агроном ответил', r.s === 200);
 r = await call('/agro/status', { id: O.id, token: O.token }); ok('фермер видит ответ', r.j.st === 'done' && /ржавчина/.test(r.j.ans), r.j);
 r = await call('/agro/rate', { id: O.id, token: O.token, stars: 5 }); ok('оценка 5', r.s === 200);
 r = await call('/agro/rate', { id: O.id, token: O.token, stars: 1 }); ok('вторая оценка того же заказа → 409', r.s === 409);
+r = await call('/agro/answer', { id: A.id, token: A.token, oid: O.id, text: 'Другой ответ после оценки' }); ok('поменять ответ после ответа нельзя → 409', r.s === 409);
+r = await call('/agro/status', { id: O.id, token: O.token }); ok('у фермера остался первый ответ', /ржавчина/.test(r.j.ans), r.j);
 r = await call('/agro/list', {}); ok('рейтинг агронома в каталоге', r.j.list[0].rate === 5 && r.j.list[0].rn === 1, r.j.list[0]);
 r = await call('/agro/admin/payout', { key: ADMIN, id: O.id }); ok('админ отметил выплату агроному', r.s === 200);
 r = await call('/agro/admin/list', { key: ADMIN });
@@ -74,6 +76,11 @@ r = await call('/agro/admin/cancel', { key: ADMIN, id: r.j.id }); ok('админ
 r = await call('/agro/admin/reject', { key: ADMIN, id: A.id }); ok('админ снял агронома с каталога', r.s === 200);
 r = await call('/agro/list', {}); ok('снятого агронома нет в каталоге', r.j.list.length === 0);
 
+{ const aip = '10.201.0.1'; let a = null;
+  for (let i = 0; i < 11; i++) a = await call('/agro/admin/list', { key: 'wrong-' + i }, { ip: aip });
+  ok('подбор ключа администратора: после 10 неверных попыток → 429', a.s === 429, a);
+  a = await call('/agro/admin/list', { key: ADMIN }, { ip: aip }); ok('и даже верный ключ с этого адреса ждёт час', a.s === 429);
+  a = await call('/agro/admin/list', { key: 'short-key' }, { env: { GEMINI_KEY: 'K', AGRO_DB: db, AGRO_ADMIN: 'short-key' } }); ok('короткий ключ администратора на сервере не принимается → 501', a.s === 501); }
 const ip = '10.200.0.1'; let last = null;
 for (let i = 0; i < 6; i++) last = await call('/agro/apply', { ...APP, name: 'Агроном ' + i }, { ip });
 ok('больше 5 анкет в сутки с одного адреса → 429', last.s === 429);

@@ -195,7 +195,9 @@ const AGRO_MAX_AGROS = 2000;
 const AGRO_MAX_ORDERS = 50000;
 const AGRO_PRICE_MIN = 500, AGRO_PRICE_MAX = 1000000; // тенге за консультацию
 const PHONE_RE = /^\+?[0-9][0-9 ()-]{6,19}$/;
-const agroHits = new Map(), agroApps = new Map(), agroOrders = new Map();
+const agroHits = new Map(), agroApps = new Map(), agroOrders = new Map(), agroAdminFails = new Map();
+const AGRO_ADMIN_FAILS = 10;      // неверных ключей администратора в час с одного адреса
+const AGRO_ADMIN_MIN = 20;        // ключ администратора короче 20 символов не принимается: его легко подобрать
 let agroSchemaReady = false;
 
 function agroFee(env) {
@@ -273,8 +275,9 @@ async function handleAgro(request, env, path, ip, reply, json) {
       // ответ на оплаченный заказ
       const text = cut(q.text, 4000);
       if (!ID_RE.test(q.oid || '') || text.length < 2) return reply(400, 'Bad order or empty answer');
-      const done = await db.prepare("UPDATE orders SET ans = ?1, st = 'done', mt = ?2 WHERE id = ?3 AND aid = ?4 AND st IN ('paid', 'done')").bind(text, now, q.oid, q.id).run();
-      if (!done.meta.changes) return reply(409, 'Order is not paid yet or not yours');
+      // ответ даётся один раз: после ответа фермер его читает и оценивает, менять его потом нельзя
+      const done = await db.prepare("UPDATE orders SET ans = ?1, st = 'done', mt = ?2 WHERE id = ?3 AND aid = ?4 AND st = 'paid'").bind(text, now, q.oid, q.id).run();
+      if (!done.meta.changes) return reply(409, 'Order is not paid, already answered or not yours');
       return json(200, { ok: true });
     }
     // заказ консультации
@@ -303,7 +306,9 @@ async function handleAgro(request, env, path, ip, reply, json) {
         if (!(s >= 1 && s <= 5)) return reply(400, 'Bad stars');
         if (o.st !== 'done') return reply(409, 'No answer yet');
         if (o.stars) return reply(409, 'Already rated');
-        await db.prepare('UPDATE orders SET stars = ?1, mt = ?2 WHERE id = ?3').bind(s, now, o.id).run();
+        // условие stars IS NULL: две одновременные оценки не засчитаются дважды
+        const rated = await db.prepare("UPDATE orders SET stars = ?1, mt = ?2 WHERE id = ?3 AND st = 'done' AND stars IS NULL").bind(s, now, o.id).run();
+        if (!rated.meta.changes) return reply(409, 'Already rated');
         await db.prepare('UPDATE agros SET rs = rs + ?1, rn = rn + 1 WHERE id = ?2').bind(s, o.aid).run();
         return json(200, { ok: true });
       }
@@ -311,8 +316,11 @@ async function handleAgro(request, env, path, ip, reply, json) {
     }
     // администратор Alqap: проверка анкет, отметка оплаты и выплаты агроному
     if (path.startsWith('/agro/admin/')) {
-      if (!env.AGRO_ADMIN) return reply(501, 'Admin key is not set on the server');
-      if (!sameText(q.key, env.AGRO_ADMIN)) return reply(403, 'Wrong admin key');
+      if (!env.AGRO_ADMIN || String(env.AGRO_ADMIN).length < AGRO_ADMIN_MIN) return reply(501, 'Admin key is not set on the server or is shorter than 20 characters');
+      // подбор ключа: после 10 неверных попыток за час адрес ждёт
+      const fails = (agroAdminFails.get(ip) || []).filter((t) => now - t < 3600000);
+      if (fails.length >= AGRO_ADMIN_FAILS) return reply(429, 'Too many wrong admin keys, wait an hour');
+      if (!sameText(q.key, env.AGRO_ADMIN)) { tooMany(agroAdminFails, ip, AGRO_ADMIN_FAILS, 3600000); return reply(403, 'Wrong admin key'); }
       if (path === '/agro/admin/list') {
         const ag = await db.prepare('SELECT id, st, name, region, crops, exp, price, fmt, about, phone, rs, rn, ct FROM agros ORDER BY ct DESC LIMIT 500').all();
         const or = await db.prepare('SELECT o.id, o.aid, o.st, o.price, o.fee, o.q, o.name, o.phone, o.lang, o.stars, o.po, o.ct, o.mt, a.name AS an FROM orders o LEFT JOIN agros a ON a.id = o.aid ORDER BY o.ct DESC LIMIT 500').all();

@@ -2308,6 +2308,12 @@ var CUR='H',ORIG='M';
 var AG={fee:10,list:null,demo:false,err:'',busy:false,open:null,me:null,inbox:null,meBusy:false,key:'',adm:null,code:null};
 var AGST={pay:['Ожидает оплаты','Төлемді күтуде','w'],paid:['Оплачено — агроном готовит ответ','Төленді — агроном жауап дайындап жатыр','w'],done:['Есть ответ','Жауап бар','y'],cancel:['Отменён','Бас тартылды','n']};
 var AGPHONE=/^\+?[0-9][0-9 ()-]{6,19}$/;
+/* Код агронома хранится отдельно от имени в команде (agro_me_v1): раньше оба лежали под одним ключом, и вход агронома
+   затирал имя, а начало кода попадало в подпись записей, которые видят коллеги. Переносим код, если он уже там */
+var AGME='agro_agme_v1';try{var agOld=JSON.parse(localStorage.getItem('agro_me_v1')||'null');if(agOld&&typeof agOld=='object'&&agOld.id&&agOld.token){if(!localStorage.getItem(AGME))localStorage.setItem(AGME,JSON.stringify({id:agOld.id,token:agOld.token}));localStorage.removeItem('agro_me_v1')}}catch(e){}
+/* История поля для агронома без названия хозяйства и чужих телефонов: агроном видит поле, регион и записи, но не знает, чьё это хозяйство */
+function agCtx(f){var nm=farmName(FARMS.cur),t=fieldSummary(f).replace('Отправлено из Alqap','');if(nm)t=t.split(nm).join(T('хозяйство','шаруашылық'));
+ return t.replace(/\+?\d[\d ()\u00a0-]{8,}\d/g,function(m){return m.replace(/\D/g,'').length>=10?'…':m}).trim().slice(0,7800)}
 function agLS(k,d){try{var v=JSON.parse(localStorage.getItem(k)||'null');return v==null?d:v}catch(e){return d}}
 function agPut(k,v){try{if(v==null)localStorage.removeItem(k);else localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
 function agReq(path,body){if(ART||typeof fetch!='function')return Promise.reject({s:0,m:'offline'});
@@ -2325,7 +2331,7 @@ function agLoad(){AG.busy=true;AG.err='';
   function(){AG.list=agDemoList();AG.demo=true}).then(function(){AG.busy=false;if(CUR=='X'&&XSEC=='mAgro')renderAgro()})}
 function agMy(){return agLS('agro_orders_v1',[])}
 function agSaveMy(L){agPut('agro_orders_v1',L.slice(0,100))}
-function renderAgro(){var el=$('mAgro');if(!el)return;var my=agMy(),me=agLS('agro_me_v1',null),fee=AG.fee;
+function renderAgro(){var el=$('mAgro');if(!el)return;var my=agMy(),me=agLS(AGME,null),fee=AG.fee;
  var h='<section class=panel><h2>'+T('Как это работает','Бұл қалай жұмыс істейді')+'</h2><p class=agab>'+T('Живой агроном ответит на ваш вопрос: он увидит историю поля и записи журнала. Оплата через Alqap: агроном получает '+(100-fee)+' %, Alqap — '+fee+' % на развитие сервиса.','Нағыз агроном сұрағыңызға жауап береді: ол алқап тарихы мен журнал жазбаларын көреді. Төлем Alqap арқылы: агрономға '+(100-fee)+' %, Alqap-қа сервисті дамытуға '+fee+' %.')+'</p>'
   +(AG.demo?'<p class=note style="margin-top:8px">'+T('Сервис ещё подключается. Ниже — примеры анкет: можно посмотреть, как всё будет работать, но настоящий агроном вопрос не получит.','Сервис әлі қосылып жатыр. Төменде — сауалнама үлгілері: бәрі қалай жұмыс істейтінін көруге болады, бірақ сұрақты нағыз агроном алмайды.')+'</p>':'')+'</section>';
  if(my.length)h+='<section class=panel><div class=hd><h2>'+T('Мои консультации','Менің кеңестерім')+'</h2><button class=lnk id=agRef>'+T('Обновить','Жаңарту')+'</button></div>'+my.map(agOrderRow).join('')+'</section>';
@@ -2351,7 +2357,7 @@ function agForm(a){var fs=allFields(),f0=typeof CURF!='undefined'&&fs.indexOf(CU
 function agSend(aid){var q=$('agQ').value.trim(),ph=$('agPh').value.trim(),f=$('agF').value,a=(AG.list||[]).filter(function(x){return x.id==aid})[0];if(!a)return;
  if(q.length<5){toast(T('Напишите вопрос подробнее','Сұрақты толығырақ жазыңыз'));$('agQ').focus();return}
  if(!AGPHONE.test(ph)){toast(T('Проверьте телефон','Телефонды тексеріңіз'));$('agPh').focus();return}
- agPut('agro_phone_v1',ph);var ctx=$('agCtx').checked&&f?fieldSummary(f).replace('Отправлено из Alqap','').slice(0,7800):'',fe=Math.round(a.price*AG.fee/100),o={aid:aid,an:a.name,price:a.price,fee:fe,q:q,f:f,fid:FARMS.cur,st:'pay',ct:Date.now()};
+ agPut('agro_phone_v1',ph);var ctx=$('agCtx').checked&&f?agCtx(f):'',fe=Math.round(a.price*AG.fee/100),o={aid:aid,an:a.name,price:a.price,fee:fe,q:q,f:f,fid:FARMS.cur,st:'pay',ct:Date.now()};
  if(AG.demo){o.id='demo'+Date.now();o.token='';o.demo=1;var L=agMy();L.unshift(o);agSaveMy(L);AG.open=null;renderAgro();toast(T('Пример: заказ создан, настоящий агроном его не получит.','Үлгі: тапсырыс жасалды, оны нағыз агроном алмайды.'));return}
  $('agSend').disabled=true;
  agReq('order',{aid:aid,q:q,ctx:ctx,phone:ph,name:$('agNm').value.trim(),lang:LANG}).then(function(j){o.id=j.id;o.token=j.token;o.price=j.price;o.fee=j.fee;var L=agMy();L.unshift(o);agSaveMy(L);AG.open=null;renderAgro();toast(T('Вопрос отправлен. Alqap пришлёт счёт на ваш телефон.','Сұрақ жіберілді. Alqap шотты телефоныңызға жібереді.'))},
@@ -2390,10 +2396,10 @@ function agApply(){var v=function(id){return $(id).value.trim()},d={name:v('agAN
  if(!(d.price>=500)){toast(T('Укажите цену от 500 ₸','Бағаны 500 ₸-ден бастап көрсетіңіз'));$('agAP').focus();return}
  if(!AGPHONE.test(d.phone)){toast(T('Проверьте телефон','Телефонды тексеріңіз'));$('agAPh').focus();return}
  if(AG.demo){toast(T('Сервис ещё подключается: анкету можно будет отправить позже.','Сервис әлі қосылып жатыр: сауалнаманы кейінірек жіберуге болады.'));return}
- $('agApply').disabled=true;agReq('apply',d).then(function(j){agPut('agro_me_v1',{id:j.id,token:j.token});AG.code=j.id+'-'+j.token;AG.me=null;renderAgro();toast(T('Анкета отправлена на проверку','Сауалнама тексеруге жіберілді'))},function(e){if($('agApply'))$('agApply').disabled=false;toast(agErr(e))})}
+ $('agApply').disabled=true;agReq('apply',d).then(function(j){agPut(AGME,{id:j.id,token:j.token});AG.code=j.id+'-'+j.token;AG.me=null;renderAgro();toast(T('Анкета отправлена на проверку','Сауалнама тексеруге жіберілді'))},function(e){if($('agApply'))$('agApply').disabled=false;toast(agErr(e))})}
 function agLogin(){var c=$('agCode').value.trim().toLowerCase().match(/^([0-9a-f]{16})-([0-9a-f]{64})$/);if(!c){toast(T('Код агронома выглядит иначе','Агроном коды басқаша көрінеді'));return}
- agReq('me',{id:c[1],token:c[2]}).then(function(j){agPut('agro_me_v1',{id:c[1],token:c[2]});AG.me=j.me;AG.inbox=j.orders;renderAgro()},function(e){toast(agErr(e))})}
-function agMeLoad(){var me=agLS('agro_me_v1',null);if(!me)return;AG.meBusy=true;
+ agReq('me',{id:c[1],token:c[2]}).then(function(j){agPut(AGME,{id:c[1],token:c[2]});AG.me=j.me;AG.inbox=j.orders;renderAgro()},function(e){toast(agErr(e))})}
+function agMeLoad(){var me=agLS(AGME,null);if(!me)return;AG.meBusy=true;
  agReq('me',{id:me.id,token:me.token}).then(function(j){AG.me=j.me;AG.inbox=j.orders||[];if(j.fee!=null)AG.fee=j.fee},function(e){AG.me={err:agErr(e)}}).then(function(){AG.meBusy=false;if(CUR=='X'&&XSEC=='mAgro')renderAgro()})}
 function agCabinet(me){var p=AG.me,h='<section class=panel><div class=hd><h2>'+T('Кабинет агронома','Агроном кабинеті')+'</h2><button class=lnk id=agMeRef>'+T('Обновить','Жаңарту')+'</button></div>';
  if(AG.code)h+='<div class=agans><b>'+T('Ваш код агронома — сохраните его','Агроном кодыңыз — оны сақтаңыз')+'</b><p class=meta>'+T('С ним можно войти в кабинет с другого телефона. Никому его не показывайте.','Онымен басқа телефоннан кабинетке кіруге болады. Оны ешкімге көрсетпеңіз.')+'</p><input readonly id=agMyCode value="'+esc(AG.code)+'" aria-label="'+T('Код агронома','Агроном коды')+'"></div>';
@@ -2408,9 +2414,9 @@ function agCabinet(me){var p=AG.me,h='<section class=panel><div class=hd><h2>'+T
       :'<label for="agA'+esc(o.id)+'">'+T('Ответ фермеру','Фермерге жауап')+'</label><textarea id="agA'+esc(o.id)+'" rows=4 maxlength=4000></textarea><button class=sm data-aga="'+esc(o.id)+'">'+T('Отправить ответ','Жауапты жіберу')+'</button>')+'</div>'}).join(''):'<p class=meta>'+T('Оплаченных вопросов пока нет. Они появятся здесь после оплаты фермером.','Төленген сұрақтар әзірге жоқ. Фермер төлегеннен кейін осында шығады.')+'</p>')
    +'<details><summary>'+T('Цена и описание','Баға және сипаттама')+'</summary><label for=agMP>'+T('Цена консультации, ₸','Кеңес бағасы, ₸')+'</label><input id=agMP type=number min=500 step=500 inputmode=numeric value="'+p.price+'"><label for=agMF>'+T('Формат','Формат')+'</label><input id=agMF maxlength=100 value="'+esc(p.fmt||'')+'"><label for=agMB>'+T('О себе','Өзіңіз туралы')+'</label><textarea id=agMB rows=3 maxlength=1000>'+esc(p.about||'')+'</textarea><button class=sm id=agMeSave>'+T('Сохранить','Сақтау')+'</button></details>'}
  h+='<button class=lnk id=agOut>'+T('Выйти из кабинета агронома','Агроном кабинетінен шығу')+'</button></section>';return h}
-function agAnswer(oid){var me=agLS('agro_me_v1',null),t=$('agA'+oid),txt=t?t.value.trim():'';if(!me)return;if(txt.length<2){toast(T('Напишите ответ','Жауап жазыңыз'));if(t)t.focus();return}
+function agAnswer(oid){var me=agLS(AGME,null),t=$('agA'+oid),txt=t?t.value.trim():'';if(!me)return;if(txt.length<2){toast(T('Напишите ответ','Жауап жазыңыз'));if(t)t.focus();return}
  agReq('answer',{id:me.id,token:me.token,oid:oid,text:txt}).then(function(){toast(T('Ответ отправлен фермеру','Жауап фермерге жіберілді'));agMeLoad()},function(e){toast(agErr(e))})}
-function agMeSave(){var me=agLS('agro_me_v1',null);if(!me)return;var pr=+$('agMP').value||0;if(!(pr>=500)){toast(T('Укажите цену от 500 ₸','Бағаны 500 ₸-ден бастап көрсетіңіз'));return}
+function agMeSave(){var me=agLS(AGME,null);if(!me)return;var pr=+$('agMP').value||0;if(!(pr>=500)){toast(T('Укажите цену от 500 ₸','Бағаны 500 ₸-ден бастап көрсетіңіз'));return}
  agReq('update',{id:me.id,token:me.token,price:pr,fmt:$('agMF').value.trim(),about:$('agMB').value.trim()}).then(function(){toast(T('Сохранено','Сақталды'));AG.list=null;agMeLoad()},function(e){toast(agErr(e))})}
 /* Администратор Alqap: проверка анкет, оплата, выплаты */
 function agAdminBlock(){if(!(/[?&]admin=1(&|$)/.test(location.search||'')||AG.adm||AG.key||agLS('agro_admin_v1','')))return'';var h='<section class=panel><details id=agAdD'+(AG.adm?' open':'')+'><summary>'+T('Для администратора Alqap','Alqap әкімшісіне')+'</summary>';
@@ -2438,7 +2444,7 @@ function agClick(ev){var b=ev.target.closest&&ev.target.closest('button');if(!b)
  if(id=='agMeRef'){AG.code=null;return agMeLoad()}
  if(d.aga)return agAnswer(d.aga);
  if(id=='agMeSave')return agMeSave();
- if(id=='agOut'){ask(T('Выйти из кабинета агронома? Войти снова можно по коду агронома.','Агроном кабинетінен шығу керек пе? Қайта агроном кодымен кіруге болады.'),T('Выйти','Шығу'),function(){agPut('agro_me_v1',null);AG.me=null;AG.inbox=null;AG.code=null;renderAgro()});return}
+ if(id=='agOut'){ask(T('Выйти из кабинета агронома? Войти снова можно по коду агронома.','Агроном кабинетінен шығу керек пе? Қайта агроном кодымен кіруге болады.'),T('Выйти','Шығу'),function(){agPut(AGME,null);AG.me=null;AG.inbox=null;AG.code=null;renderAgro()});return}
  if(id=='agAdm'){AG.key=$('agAK').value.trim();agPut('agro_admin_v1',$('agAKr').checked?AG.key:null);return agAdmLoad()}
  if(d.adm)return agAdmDo(d.adm,d.id);
  if(id=='agAdOut'){AG.adm=null;AG.key='';renderAgro()}}

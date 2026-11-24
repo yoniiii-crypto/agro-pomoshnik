@@ -38,7 +38,9 @@ let fails = 0; const ok = (name, cond, extra) => { if (!cond) fails++; console.l
   await ag.evaluate(() => { document.getElementById('agApD').open = true; });
   await ag.fill('#agAN', 'Айгерим Нурланова'); await ag.selectOption('#agAR', 'Костанайская'); await ag.fill('#agAC', 'пшеница, ячмень');
   await ag.fill('#agAE', '12'); await ag.fill('#agAP', '15000'); await ag.fill('#agAF', 'чат'); await ag.fill('#agAB', 'Агроном-фитопатолог'); await ag.fill('#agAPh', '+7 700 000 0000');
+  await ag.evaluate(() => localStorage.setItem('agro_me_v1', 'Айгерим'));
   await ag.click('#agApply'); await wait(ag); await ag.waitForTimeout(300);
+  ok('код агронома не затирает имя в команде и не попадает в подпись записей', await ag.evaluate(() => syncMe() === 'Айгерим' && /"token"/.test(localStorage.getItem('agro_agme_v1') || '')));
   const code = await ag.evaluate(() => document.getElementById('agMyCode') && document.getElementById('agMyCode').value);
   ok('анкета отправлена, агроном видит свой код', /^[0-9a-f]{16}-[0-9a-f]{64}$/.test(code || ''), code);
   ok('кабинет агронома: анкета на проверке', /Кабинет агронома/.test(await txt(ag)) && /анкета на проверке/.test(await txt(ag)));
@@ -67,12 +69,14 @@ let fails = 0; const ok = (name, cond, extra) => { if (!cond) fails++; console.l
   await fm.click('#agSend'); await fm.waitForTimeout(150);
   ok('без вопроса и телефона заказ не уходит', (await fm.evaluate(() => JSON.parse(localStorage.getItem('agro_orders_v1') || '[]').length)) === 0);
   await fm.fill('#agQ', 'На листьях пшеницы оранжевые пятна, что делать?'); await fm.fill('#agPh', '+7 701 111 2233'); await fm.fill('#agNm', 'Ерлан');
+  await fm.evaluate(() => { FARMS.list[0].name = 'КХ «Береке» Иванова'; saveFarms(); D[0].n = 'звонить бригадиру +7 777 123 45 67'; save(); });
   await fm.click('#agSend'); await wait(fm);
   const my = await fm.evaluate(() => JSON.parse(localStorage.getItem('agro_orders_v1') || '[]'));
   ok('заказ создан: ожидает оплаты, цена и комиссия с сервера', my.length === 1 && my[0].st === 'pay' && my[0].price === 15000 && my[0].fee === 1500 && my[0].f === 'Поле 3', my);
   ok('в «Мои консультации» статус «Ожидает оплаты»', /Мои консультации/.test(await txt(fm)) && /Ожидает оплаты/.test(await txt(fm)));
   const sent = db._db.prepare('SELECT ctx, phone FROM orders').get();
   ok('на сервер ушли история поля и телефон', /Поле 3/.test(sent.ctx) && sent.phone === '+7 701 111 2233', sent);
+  ok('в истории поля для агронома нет названия хозяйства и чужих телефонов', !/Береке/.test(sent.ctx) && !/777 123/.test(sent.ctx) && /звонить бригадиру/.test(sent.ctx), sent.ctx);
 
   // 5. Агроном до оплаты вопроса не видит
   await ag.click('#agMeRef'); await wait(ag);
@@ -132,5 +136,11 @@ let fails = 0; const ok = (name, cond, extra) => { if (!cond) fails++; console.l
   await fm.screenshot({ path: require('os').tmpdir() + '/shot_agro.png', fullPage: true });
 
   ok('ошибок на страницах нет', errs.length === 0, errs);
+  // код агронома, сохранённый старой версией под ключом имени, переносится, имя в команде больше не портит
+  { const ctx = await b.newContext({ serviceWorkers: 'block' }); await ctx.route(/open-meteo|workers\.dev/, (r) => r.abort());
+    await ctx.addInitScript(() => { if (localStorage.getItem('agro_onb_v1') == null) { localStorage.setItem('agro_onb_v1', '1'); localStorage.setItem('agro_me_v1', JSON.stringify({ id: '0123456789abcdef', token: 'a'.repeat(64) })); } });
+    const p = await ctx.newPage(); await p.goto(APP); await p.waitForTimeout(300);
+    const r = await p.evaluate(() => [localStorage.getItem('agro_me_v1'), JSON.parse(localStorage.getItem('agro_agme_v1') || 'null'), syncMe()]);
+    ok('старый код агронома перенесён, подпись записей пустая', r[0] === null && r[1] && r[1].id === '0123456789abcdef' && r[2] === '', r); await ctx.close(); }
   console.log(fails ? 'FAILED ' + fails : 'ALL OK'); await b.close(); web.close(); process.exit(fails ? 1 : 0);
 })();
