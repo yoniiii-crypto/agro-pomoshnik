@@ -489,7 +489,21 @@ var FARMS={list:[{id:"f1",name:"Моё хозяйство"}],cur:"f1"};try{var f
 if(!FARMS.list.some(function(f){return f.id==FARMS.cur}))FARMS.cur=FARMS.list[0].id;
 function FK(k,id){id=id||FARMS.cur;return id=="f1"?k:k+"@"+id}
 function saveFarms(){try{localStorage.setItem("agro_farms_v1",JSON.stringify(FARMS))}catch(e){}}
-function lsJ(k,id,def){try{var v=JSON.parse(localStorage.getItem(FK(k,id))||"null");return v==null?def:v}catch(e){return def}}
+/* Данные из общей базы и из файлов пишут другие телефоны, поэтому им не доверяем: числа приводим к числам,
+   номера записей и даты — к безопасному виду. Иначе строка с HTML в поле «затраты» попала бы на экран как код */
+function cleanNum(v){v=+v;return isFinite(v)?v:0}
+function cleanId(v){return typeof v=='number'&&isFinite(v)?v:String(v==null?'':v).replace(/[^0-9A-Za-z_.:-]/g,'').slice(0,60)}
+function cleanDay(v){v=String(v==null?'':v);return/^\d{4}-\d{2}-\d{2}$/.test(v)?v:v.replace(/[^0-9-]/g,'').slice(0,10)}
+var CLEAN_L={agro_diary_v1:['c','y','w'],agro_tasks_v1:[],agro_sales_v1:['t','p'],agro_comments_v1:[]};
+function cleanKey(k,v){try{
+ if(k=='agro_fields_v1'||k=='agro_prices_v1'){if(!v||typeof v!='object'||Array.isArray(v))return{};Object.keys(v).forEach(function(x){v[x]=cleanNum(v[x])})}
+ else if(CLEAN_L[k]){if(!Array.isArray(v))return[];v=v.filter(function(e){return e&&typeof e=='object'&&!Array.isArray(e)});v.forEach(function(e){if('id' in e)e.id=cleanId(e.id);
+   CLEAN_L[k].forEach(function(n){if(e[n]!=null&&e[n]!=='')e[n]=cleanNum(e[n])});
+   if(k=='agro_comments_v1'){if('e' in e)e.e=String(cleanId(e.e));e.d=cleanNum(e.d)}else if('d' in e)e.d=cleanDay(e.d);
+   if(k=='agro_diary_v1'&&e.ph!=null)e.ph=Array.isArray(e.ph)?e.ph.map(cleanId).filter(function(x){return x!==''}):[]})}
+ else if(k=='agro_bounds_v1'){if(!v||typeof v!='object'||Array.isArray(v))return{};Object.keys(v).forEach(function(f){var P=v[f];v[f]=Array.isArray(P)?P.filter(Array.isArray).map(function(q){return[cleanNum(q[0]),cleanNum(q[1])]}):[]})}
+}catch(e){}return v}
+function lsJ(k,id,def){try{var v=JSON.parse(localStorage.getItem(FK(k,id))||"null");return v==null?def:cleanKey(k,v)}catch(e){return def}}
 var W=["w","g","c"];
 var CFG={
 N:{name:"Север, богара",crops:[["Яровая пшеница",15,1],["Ячмень",18,.9],["Подсолнечник",12,.8],["Рапс",10,1.2],["Лён масличный",8,1.1],["Горох",15,1],["Картофель",200,1.2],["Многолетние травы (сено)",25,.8],["Кукуруза на силос",250,1]],f:[
@@ -582,8 +596,8 @@ document.addEventListener("click",function(ev){var b=ev.target.closest&&ev.targe
 
 /* Дневник */
 var OPS=["Обработка почвы","Сев или посадка","Удобрения","Полив","Защита растений","Осмотр поля","Уборка","Другое"];
-var LS="agro_diary_v1",D=[];var AR={};try{AR=JSON.parse(localStorage.getItem(FK("agro_fields_v1"))||"{}")||{}}catch(e){AR={}}
-try{D=JSON.parse(localStorage.getItem(FK(LS))||"[]");if(!Array.isArray(D))D=[]}catch(e){D=[]}
+var LS="agro_diary_v1",D=[];var AR={};AR=lsJ("agro_fields_v1",null,{})
+D=lsJ(LS,null,[])
 /* Обсуждение записей в общем хозяйстве: комментарии — отдельный список, у каждого свой номер, поэтому одновременные комментарии не теряются */
 var CM=[],CMN={},CMOPEN={},CMDRAFT={};
 function loadCM(){CM=lsJ('agro_comments_v1',null,[]);if(!Array.isArray(CM))CM=[];cmIndex()}
@@ -1031,7 +1045,7 @@ try{var m0=JSON.parse(localStorage.getItem(FK('agro_calc_v1'))||'{}');Object.key
 Array.prototype.forEach.call(document.querySelectorAll(ALL),function(e){e.oninput=e.onchange=upd});
 $('nO').onchange=function(){fillT();upd()};
 /* План работ: свои задачи, сезонные подсказки, экспорт в календарь телефона */
-var TK=[];try{TK=JSON.parse(localStorage.getItem(FK('agro_tasks_v1'))||'[]');if(!Array.isArray(TK))TK=[]}catch(e){TK=[]}
+var TK=[];TK=lsJ('agro_tasks_v1',null,[])
 function saveTK(){syncBy(TK,'agro_tasks_v1');try{localStorage.setItem(FK('agro_tasks_v1'),JSON.stringify(TK))}catch(e){toast('Не удалось сохранить план.')}}
 /* [зона N/S/A, месяц и день начала, месяц и день конца, задача, пояснение, операция дневника] */
 var SEAS=[
@@ -2294,6 +2308,12 @@ var CUR='H',ORIG='M';
 var AG={fee:10,list:null,demo:false,err:'',busy:false,open:null,me:null,inbox:null,meBusy:false,key:'',adm:null,code:null};
 var AGST={pay:['Ожидает оплаты','Төлемді күтуде','w'],paid:['Оплачено — агроном готовит ответ','Төленді — агроном жауап дайындап жатыр','w'],done:['Есть ответ','Жауап бар','y'],cancel:['Отменён','Бас тартылды','n']};
 var AGPHONE=/^\+?[0-9][0-9 ()-]{6,19}$/;
+/* Код агронома хранится отдельно от имени в команде (agro_me_v1): раньше оба лежали под одним ключом, и вход агронома
+   затирал имя, а начало кода попадало в подпись записей, которые видят коллеги. Переносим код, если он уже там */
+var AGME='agro_agme_v1';try{var agOld=JSON.parse(localStorage.getItem('agro_me_v1')||'null');if(agOld&&typeof agOld=='object'&&agOld.id&&agOld.token){if(!localStorage.getItem(AGME))localStorage.setItem(AGME,JSON.stringify({id:agOld.id,token:agOld.token}));localStorage.removeItem('agro_me_v1')}}catch(e){}
+/* История поля для агронома без названия хозяйства и чужих телефонов: агроном видит поле, регион и записи, но не знает, чьё это хозяйство */
+function agCtx(f){var nm=farmName(FARMS.cur),t=fieldSummary(f).replace('Отправлено из Alqap','');if(nm)t=t.split(nm).join(T('хозяйство','шаруашылық'));
+ return t.replace(/\+?\d[\d ()\u00a0-]{8,}\d/g,function(m){return m.replace(/\D/g,'').length>=10?'…':m}).trim().slice(0,7800)}
 function agLS(k,d){try{var v=JSON.parse(localStorage.getItem(k)||'null');return v==null?d:v}catch(e){return d}}
 function agPut(k,v){try{if(v==null)localStorage.removeItem(k);else localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
 function agReq(path,body){if(ART||typeof fetch!='function')return Promise.reject({s:0,m:'offline'});
@@ -2311,7 +2331,7 @@ function agLoad(){AG.busy=true;AG.err='';
   function(){AG.list=agDemoList();AG.demo=true}).then(function(){AG.busy=false;if(CUR=='X'&&XSEC=='mAgro')renderAgro()})}
 function agMy(){return agLS('agro_orders_v1',[])}
 function agSaveMy(L){agPut('agro_orders_v1',L.slice(0,100))}
-function renderAgro(){var el=$('mAgro');if(!el)return;var my=agMy(),me=agLS('agro_me_v1',null),fee=AG.fee;
+function renderAgro(){var el=$('mAgro');if(!el)return;var my=agMy(),me=agLS(AGME,null),fee=AG.fee;
  var h='<section class=panel><h2>'+T('Как это работает','Бұл қалай жұмыс істейді')+'</h2><p class=agab>'+T('Живой агроном ответит на ваш вопрос: он увидит историю поля и записи журнала. Оплата через Alqap: агроном получает '+(100-fee)+' %, Alqap — '+fee+' % на развитие сервиса.','Нағыз агроном сұрағыңызға жауап береді: ол алқап тарихы мен журнал жазбаларын көреді. Төлем Alqap арқылы: агрономға '+(100-fee)+' %, Alqap-қа сервисті дамытуға '+fee+' %.')+'</p>'
   +(AG.demo?'<p class=note style="margin-top:8px">'+T('Сервис ещё подключается. Ниже — примеры анкет: можно посмотреть, как всё будет работать, но настоящий агроном вопрос не получит.','Сервис әлі қосылып жатыр. Төменде — сауалнама үлгілері: бәрі қалай жұмыс істейтінін көруге болады, бірақ сұрақты нағыз агроном алмайды.')+'</p>':'')+'</section>';
  if(my.length)h+='<section class=panel><div class=hd><h2>'+T('Мои консультации','Менің кеңестерім')+'</h2><button class=lnk id=agRef>'+T('Обновить','Жаңарту')+'</button></div>'+my.map(agOrderRow).join('')+'</section>';
@@ -2337,7 +2357,7 @@ function agForm(a){var fs=allFields(),f0=typeof CURF!='undefined'&&fs.indexOf(CU
 function agSend(aid){var q=$('agQ').value.trim(),ph=$('agPh').value.trim(),f=$('agF').value,a=(AG.list||[]).filter(function(x){return x.id==aid})[0];if(!a)return;
  if(q.length<5){toast(T('Напишите вопрос подробнее','Сұрақты толығырақ жазыңыз'));$('agQ').focus();return}
  if(!AGPHONE.test(ph)){toast(T('Проверьте телефон','Телефонды тексеріңіз'));$('agPh').focus();return}
- agPut('agro_phone_v1',ph);var ctx=$('agCtx').checked&&f?fieldSummary(f).replace('Отправлено из Alqap','').slice(0,7800):'',fe=Math.round(a.price*AG.fee/100),o={aid:aid,an:a.name,price:a.price,fee:fe,q:q,f:f,fid:FARMS.cur,st:'pay',ct:Date.now()};
+ agPut('agro_phone_v1',ph);var ctx=$('agCtx').checked&&f?agCtx(f):'',fe=Math.round(a.price*AG.fee/100),o={aid:aid,an:a.name,price:a.price,fee:fe,q:q,f:f,fid:FARMS.cur,st:'pay',ct:Date.now()};
  if(AG.demo){o.id='demo'+Date.now();o.token='';o.demo=1;var L=agMy();L.unshift(o);agSaveMy(L);AG.open=null;renderAgro();toast(T('Пример: заказ создан, настоящий агроном его не получит.','Үлгі: тапсырыс жасалды, оны нағыз агроном алмайды.'));return}
  $('agSend').disabled=true;
  agReq('order',{aid:aid,q:q,ctx:ctx,phone:ph,name:$('agNm').value.trim(),lang:LANG}).then(function(j){o.id=j.id;o.token=j.token;o.price=j.price;o.fee=j.fee;var L=agMy();L.unshift(o);agSaveMy(L);AG.open=null;renderAgro();toast(T('Вопрос отправлен. Alqap пришлёт счёт на ваш телефон.','Сұрақ жіберілді. Alqap шотты телефоныңызға жібереді.'))},
@@ -2376,10 +2396,10 @@ function agApply(){var v=function(id){return $(id).value.trim()},d={name:v('agAN
  if(!(d.price>=500)){toast(T('Укажите цену от 500 ₸','Бағаны 500 ₸-ден бастап көрсетіңіз'));$('agAP').focus();return}
  if(!AGPHONE.test(d.phone)){toast(T('Проверьте телефон','Телефонды тексеріңіз'));$('agAPh').focus();return}
  if(AG.demo){toast(T('Сервис ещё подключается: анкету можно будет отправить позже.','Сервис әлі қосылып жатыр: сауалнаманы кейінірек жіберуге болады.'));return}
- $('agApply').disabled=true;agReq('apply',d).then(function(j){agPut('agro_me_v1',{id:j.id,token:j.token});AG.code=j.id+'-'+j.token;AG.me=null;renderAgro();toast(T('Анкета отправлена на проверку','Сауалнама тексеруге жіберілді'))},function(e){if($('agApply'))$('agApply').disabled=false;toast(agErr(e))})}
+ $('agApply').disabled=true;agReq('apply',d).then(function(j){agPut(AGME,{id:j.id,token:j.token});AG.code=j.id+'-'+j.token;AG.me=null;renderAgro();toast(T('Анкета отправлена на проверку','Сауалнама тексеруге жіберілді'))},function(e){if($('agApply'))$('agApply').disabled=false;toast(agErr(e))})}
 function agLogin(){var c=$('agCode').value.trim().toLowerCase().match(/^([0-9a-f]{16})-([0-9a-f]{64})$/);if(!c){toast(T('Код агронома выглядит иначе','Агроном коды басқаша көрінеді'));return}
- agReq('me',{id:c[1],token:c[2]}).then(function(j){agPut('agro_me_v1',{id:c[1],token:c[2]});AG.me=j.me;AG.inbox=j.orders;renderAgro()},function(e){toast(agErr(e))})}
-function agMeLoad(){var me=agLS('agro_me_v1',null);if(!me)return;AG.meBusy=true;
+ agReq('me',{id:c[1],token:c[2]}).then(function(j){agPut(AGME,{id:c[1],token:c[2]});AG.me=j.me;AG.inbox=j.orders;renderAgro()},function(e){toast(agErr(e))})}
+function agMeLoad(){var me=agLS(AGME,null);if(!me)return;AG.meBusy=true;
  agReq('me',{id:me.id,token:me.token}).then(function(j){AG.me=j.me;AG.inbox=j.orders||[];if(j.fee!=null)AG.fee=j.fee},function(e){AG.me={err:agErr(e)}}).then(function(){AG.meBusy=false;if(CUR=='X'&&XSEC=='mAgro')renderAgro()})}
 function agCabinet(me){var p=AG.me,h='<section class=panel><div class=hd><h2>'+T('Кабинет агронома','Агроном кабинеті')+'</h2><button class=lnk id=agMeRef>'+T('Обновить','Жаңарту')+'</button></div>';
  if(AG.code)h+='<div class=agans><b>'+T('Ваш код агронома — сохраните его','Агроном кодыңыз — оны сақтаңыз')+'</b><p class=meta>'+T('С ним можно войти в кабинет с другого телефона. Никому его не показывайте.','Онымен басқа телефоннан кабинетке кіруге болады. Оны ешкімге көрсетпеңіз.')+'</p><input readonly id=agMyCode value="'+esc(AG.code)+'" aria-label="'+T('Код агронома','Агроном коды')+'"></div>';
@@ -2394,9 +2414,9 @@ function agCabinet(me){var p=AG.me,h='<section class=panel><div class=hd><h2>'+T
       :'<label for="agA'+esc(o.id)+'">'+T('Ответ фермеру','Фермерге жауап')+'</label><textarea id="agA'+esc(o.id)+'" rows=4 maxlength=4000></textarea><button class=sm data-aga="'+esc(o.id)+'">'+T('Отправить ответ','Жауапты жіберу')+'</button>')+'</div>'}).join(''):'<p class=meta>'+T('Оплаченных вопросов пока нет. Они появятся здесь после оплаты фермером.','Төленген сұрақтар әзірге жоқ. Фермер төлегеннен кейін осында шығады.')+'</p>')
    +'<details><summary>'+T('Цена и описание','Баға және сипаттама')+'</summary><label for=agMP>'+T('Цена консультации, ₸','Кеңес бағасы, ₸')+'</label><input id=agMP type=number min=500 step=500 inputmode=numeric value="'+p.price+'"><label for=agMF>'+T('Формат','Формат')+'</label><input id=agMF maxlength=100 value="'+esc(p.fmt||'')+'"><label for=agMB>'+T('О себе','Өзіңіз туралы')+'</label><textarea id=agMB rows=3 maxlength=1000>'+esc(p.about||'')+'</textarea><button class=sm id=agMeSave>'+T('Сохранить','Сақтау')+'</button></details>'}
  h+='<button class=lnk id=agOut>'+T('Выйти из кабинета агронома','Агроном кабинетінен шығу')+'</button></section>';return h}
-function agAnswer(oid){var me=agLS('agro_me_v1',null),t=$('agA'+oid),txt=t?t.value.trim():'';if(!me)return;if(txt.length<2){toast(T('Напишите ответ','Жауап жазыңыз'));if(t)t.focus();return}
+function agAnswer(oid){var me=agLS(AGME,null),t=$('agA'+oid),txt=t?t.value.trim():'';if(!me)return;if(txt.length<2){toast(T('Напишите ответ','Жауап жазыңыз'));if(t)t.focus();return}
  agReq('answer',{id:me.id,token:me.token,oid:oid,text:txt}).then(function(){toast(T('Ответ отправлен фермеру','Жауап фермерге жіберілді'));agMeLoad()},function(e){toast(agErr(e))})}
-function agMeSave(){var me=agLS('agro_me_v1',null);if(!me)return;var pr=+$('agMP').value||0;if(!(pr>=500)){toast(T('Укажите цену от 500 ₸','Бағаны 500 ₸-ден бастап көрсетіңіз'));return}
+function agMeSave(){var me=agLS(AGME,null);if(!me)return;var pr=+$('agMP').value||0;if(!(pr>=500)){toast(T('Укажите цену от 500 ₸','Бағаны 500 ₸-ден бастап көрсетіңіз'));return}
  agReq('update',{id:me.id,token:me.token,price:pr,fmt:$('agMF').value.trim(),about:$('agMB').value.trim()}).then(function(){toast(T('Сохранено','Сақталды'));AG.list=null;agMeLoad()},function(e){toast(agErr(e))})}
 /* Администратор Alqap: проверка анкет, оплата, выплаты */
 function agAdminBlock(){if(!(/[?&]admin=1(&|$)/.test(location.search||'')||AG.adm||AG.key||agLS('agro_admin_v1','')))return'';var h='<section class=panel><details id=agAdD'+(AG.adm?' open':'')+'><summary>'+T('Для администратора Alqap','Alqap әкімшісіне')+'</summary>';
@@ -2424,7 +2444,7 @@ function agClick(ev){var b=ev.target.closest&&ev.target.closest('button');if(!b)
  if(id=='agMeRef'){AG.code=null;return agMeLoad()}
  if(d.aga)return agAnswer(d.aga);
  if(id=='agMeSave')return agMeSave();
- if(id=='agOut'){ask(T('Выйти из кабинета агронома? Войти снова можно по коду агронома.','Агроном кабинетінен шығу керек пе? Қайта агроном кодымен кіруге болады.'),T('Выйти','Шығу'),function(){agPut('agro_me_v1',null);AG.me=null;AG.inbox=null;AG.code=null;renderAgro()});return}
+ if(id=='agOut'){ask(T('Выйти из кабинета агронома? Войти снова можно по коду агронома.','Агроном кабинетінен шығу керек пе? Қайта агроном кодымен кіруге болады.'),T('Выйти','Шығу'),function(){agPut(AGME,null);AG.me=null;AG.inbox=null;AG.code=null;renderAgro()});return}
  if(id=='agAdm'){AG.key=$('agAK').value.trim();agPut('agro_admin_v1',$('agAKr').checked?AG.key:null);return agAdmLoad()}
  if(d.adm)return agAdmDo(d.adm,d.id);
  if(id=='agAdOut'){AG.adm=null;AG.key='';renderAgro()}}
@@ -2680,9 +2700,9 @@ function syncStatus(m){if(m.gone)return T('общая копия удалена 
  if(m.err)return T('ошибка синхронизации','синхрондау қатесі');var w=m.ro?T('только просмотр','тек қарау'):T('общее','ортақ');return m.last?w+T(', обновлено ',', жаңартылды ')+syncWhen(m.last):w}
 function syncRO(){var m=syncMeta(FARMS.cur);return!!(m&&m.ro&&!m.gone)}
 /* Данные хозяйства из памяти браузера заново читаются в приложение: после слияния и когда их изменила другая вкладка */
-function syncLoadState(){try{D=JSON.parse(localStorage.getItem(FK(LS))||'[]');if(!Array.isArray(D))D=[]}catch(e){D=[]}
- try{AR=JSON.parse(localStorage.getItem(FK('agro_fields_v1'))||'{}')||{}}catch(e){AR={}}
- try{TK=JSON.parse(localStorage.getItem(FK('agro_tasks_v1'))||'[]');if(!Array.isArray(TK))TK=[]}catch(e){TK=[]}
+function syncLoadState(){D=lsJ(LS,null,[])
+ AR=lsJ('agro_fields_v1',null,{})
+ TK=lsJ('agro_tasks_v1',null,[])
  loadCM();cmPatch();loadSL();loadBND();PR=lsJ('agro_prices_v1',null,{});if(!PR||typeof PR!='object')PR={};
  NORMS=lsJ('agro_norms_v1',null,null)||{};['y','r','n','m','pt','f'].forEach(function(k){if(!NORMS[k]||typeof NORMS[k]!='object')NORMS[k]={}});applyNorms();
  var rg=lsJ('agro_region_v1',null,null);if(rg&&!REG[rg.o])rg=null;if(JSON.stringify(rg)!==JSON.stringify(RG)){RG=rg;WX=null;WXA=null}
