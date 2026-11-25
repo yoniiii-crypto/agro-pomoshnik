@@ -402,6 +402,7 @@ body.noscroll{overflow:hidden}
 <p class="sh">Язык · Тіл</p>
 <div class="list pad"><div class="seg" role="group" aria-label="Язык / Тіл"><button id="lRu" aria-pressed="true">Русский</button><button id="lKk" aria-pressed="false">Қазақша</button></div></div>
 <p class="note" style="margin:12px 16px 0"><span data-i="mVerL">Alqap · версия</span> <span id="mVer"></span> · <button class="lnk" id="mNew" style="font-size:13px;min-height:0;padding:0" data-i="mNewL">Что нового</button></p><div id="mNewT" class="list pad hidden" style="margin-top:8px"></div>
+<p class="note" id="mCopyR" data-i="copyR" style="margin:8px 16px 0">© Alqap. Свидетельство о государственной регистрации прав на объект авторского права № 82019 от 25.11.2026. Автор: Саутбаев Эльсид Тимурович.</p>
 </div>
 
 <div id="norms" class="hidden"><div class="chips segc" id="ySeg" role="group" aria-label="Нормы агронома"><button class="chip" data-sg="y" aria-pressed="false" data-i="ysgY">Урожай</button><button class="chip" data-sg="r" aria-pressed="false" data-i="ysgR">Возврат культур</button><button class="chip" data-sg="f" aria-pressed="false" data-i="ysgF">Удобрения</button><button class="chip" data-sg="s" aria-pressed="false" data-i="ysgS">Высев</button></div><section class="panel" id="nmY"></section><section class="panel" id="nmR"></section><section class="panel" id="nmF"></section><section class="panel" id="nmS"></section></div>
@@ -444,6 +445,7 @@ body.noscroll{overflow:hidden}
 </div>
 
 <footer data-i="foot">Прототип. Баллы, коэффициенты и стартовые значения демонстрационные: их нужно откалибровать с агрономами и данными хозяйств. Риск урожая это оценка, а не гарантия. Приложение не заменяет агронома и не даёт доз препаратов. Калькуляторы пастбищ и кормов упрощены и считают по сухому веществу. Данные хранятся только в этом браузере: делайте резервную копию на вкладке «Ещё».</footer>
+<p class="note" id="copyR" data-i="copyR" style="margin:8px 4px 0;font-size:12px;line-height:16px">© Alqap. Свидетельство о государственной регистрации прав на объект авторского права № 82019 от 25.11.2026. Автор: Саутбаев Эльсид Тимурович.</p>
 </main>
 <nav class="tabbar" aria-label="Разделы"><div class="in">
 <button id="tH"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="7" height="7" rx="2"/><rect x="13" y="4" width="7" height="7" rx="2"/><rect x="4" y="13" width="7" height="7" rx="2"/><rect x="13" y="13" width="7" height="7" rx="2"/></svg><span data-i="tH">Сводка</span></button>
@@ -1262,6 +1264,8 @@ function setLang(l){LANG=l=='kk'?'kk':'ru';try{localStorage.setItem('agro_lang_v
  Array.prototype.forEach.call(document.querySelectorAll('[data-i]'),function(e){if(e.dataset.ru==null)e.dataset.ru=e.textContent;e.textContent=LANG=='kk'&&KK[e.dataset.i]?KK[e.dataset.i]:e.dataset.ru});
  $('lRu').setAttribute('aria-pressed',LANG=='ru');$('lKk').setAttribute('aria-pressed',LANG=='kk');$('kkNote').classList.toggle('hidden',LANG!='kk');Array.prototype.forEach.call(document.querySelectorAll('#dChips .chip'),function(b){b.textContent=opName(b.dataset.op)});if(window.BOOTED)tab(CUR,null);else if(typeof CUR!='undefined')setTitle()}
 $('lRu').onclick=function(){setLang('ru')};$('lKk').onclick=function(){setLang('kk')};
+/* Авторское право: свидетельство Казпатента № 82019 от 25.11.2026 */
+KK.copyR='© Alqap. Авторлық құқық куәлігі № 82019, 25.11.2026. Авторы: Саутбаев Эльсид Тимурович.';
 
 /* ===== Регион хозяйства: область и координаты (для погоды, саранчи, зоны) ===== */
 var REG={'Абайская':[50.41,80.23,'Семей'],'Акмолинская':[53.28,69.39,'Кокшетау'],'Актюбинская':[50.28,57.17,'Актобе'],'Алматинская':[43.87,77.07,'Конаев'],'Атырауская':[47.10,51.92,'Атырау'],'Восточно-Казахстанская':[49.95,82.61,'Усть-Каменогорск'],'Жамбылская':[42.90,71.37,'Тараз'],'Жетісу':[45.02,78.37,'Талдыкорган'],'Западно-Казахстанская':[51.23,51.37,'Уральск'],'Карагандинская':[49.80,73.10,'Караганда'],'Костанайская':[53.21,63.62,'Костанай'],'Кызылординская':[44.85,65.51,'Кызылорда'],'Мангистауская':[43.65,51.17,'Актау'],'Павлодарская':[52.29,76.97,'Павлодар'],'Северо-Казахстанская':[54.87,69.15,'Петропавловск'],'Туркестанская':[43.30,68.25,'Туркестан'],'Улытауская':[47.78,67.71,'Жезказган']};
